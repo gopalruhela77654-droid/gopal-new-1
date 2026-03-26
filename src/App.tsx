@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef, Component, ErrorInfo, ReactNode } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import * as React from 'react';
 import { 
   ShoppingBag, 
   Upload, 
@@ -18,9 +17,58 @@ import {
   Twitter,
   Facebook,
   ArrowRight,
-  CheckCircle2,
-  AlertTriangle
+  CheckCircle2
 } from 'lucide-react';
+
+// --- Error Boundary ---
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-red-50 p-4">
+          <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-red-100">
+            <h1 className="text-2xl font-bold text-red-600 mb-4 font-serif">Something went wrong</h1>
+            <p className="text-gray-600 mb-4">The application encountered an unexpected error.</p>
+            <pre className="bg-red-50 p-4 rounded-lg text-xs text-red-800 overflow-auto max-h-40 mb-6 font-mono">
+              {this.state.error?.message}
+            </pre>
+            <button 
+              onClick={() => window.location.reload()}
+              className="w-full bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition-colors"
+            >
+              Reload Application
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 // --- Types & Constants ---
 
@@ -90,56 +138,18 @@ const PRODUCTS: Product[] = [
   }
 ];
 
-// --- Error Boundary ---
-
-class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
-  constructor(props: { children: ReactNode }) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Uncaught error:", error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-brand-cream p-6">
-          <div className="max-w-md w-full text-center space-y-4">
-            <AlertTriangle className="mx-auto text-red-500" size={48} />
-            <h1 className="text-2xl font-serif">Something went wrong</h1>
-            <p className="text-sm opacity-60">We encountered an error while rendering the application. Please try refreshing the page.</p>
-            <pre className="text-left bg-black/5 p-4 rounded-lg text-xs overflow-auto max-h-40">
-              {this.state.error?.message}
-            </pre>
-            <button 
-              onClick={() => window.location.reload()}
-              className="btn-primary w-full"
-            >
-              Refresh Page
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
 // --- Main Application ---
 
-function AuraApp() {
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [customType, setCustomType] = useState<'tshirt' | 'mug'>('tshirt');
-  const [customImage, setCustomImage] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+export default function App() {
+  const [cart, setCart] = React.useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = React.useState(false);
+  const [customType, setCustomType] = React.useState<'tshirt' | 'mug'>('tshirt');
+  const [customImage, setCustomImage] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    console.log("Aura Print App Mounted");
+  }, []);
 
   const addToCart = (product: Product, customDesign?: string) => {
     setCart(prev => {
@@ -205,7 +215,8 @@ function AuraApp() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <ErrorBoundary>
+      <div className="min-h-screen flex flex-col bg-brand-cream text-brand-ink">
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-brand-cream/80 backdrop-blur-md border-b border-black/5 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-8">
@@ -231,7 +242,7 @@ function AuraApp() {
 
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="relative h-[80vh] flex items-center justify-center overflow-hidden px-6">
+        <section className="relative h-[70vh] flex items-center justify-center overflow-hidden px-6">
           <div className="absolute inset-0 z-0">
             <img 
               src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=2000" 
@@ -243,11 +254,7 @@ function AuraApp() {
           </div>
           
           <div className="relative z-10 text-center max-w-3xl">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-            >
+            <div>
               <span className="text-xs font-bold tracking-[0.3em] uppercase opacity-50 mb-4 block">Wear Your Story</span>
               <h1 className="text-6xl md:text-8xl font-serif mb-8 leading-[0.9]">
                 Artistry in <br />
@@ -262,7 +269,7 @@ function AuraApp() {
                 </a>
                 <a href="#shop" className="btn-outline">Browse Collection</a>
               </div>
-            </motion.div>
+            </div>
           </div>
         </section>
 
@@ -276,13 +283,9 @@ function AuraApp() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {PRODUCTS.map((product, idx) => (
-              <motion.div 
+            {PRODUCTS.map((product) => (
+              <div 
                 key={product.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
                 className="aesthetic-card group"
               >
                 <div className="aspect-[4/5] overflow-hidden relative">
@@ -294,7 +297,7 @@ function AuraApp() {
                   />
                   <button 
                     onClick={() => addToCart(product)}
-                    className="absolute bottom-4 right-4 bg-white p-3 rounded-full shadow-lg translate-y-12 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 hover:bg-brand-ink hover:text-white"
+                    className="absolute bottom-4 right-4 bg-white p-3 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-brand-ink hover:text-white"
                   >
                     <Plus size={20} />
                   </button>
@@ -306,7 +309,7 @@ function AuraApp() {
                   </div>
                   <p className="text-sm opacity-60 line-clamp-2">{product.description}</p>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </section>
@@ -362,14 +365,12 @@ function AuraApp() {
                 </div>
 
                 {customImage && (
-                  <motion.button 
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                  <button 
                     onClick={handleAddCustomToCart}
                     className="w-full bg-white text-brand-ink py-4 rounded-full font-bold text-lg hover:bg-white/90 transition-colors"
                   >
                     Add to Cart
-                  </motion.button>
+                  </button>
                 )}
               </div>
             </div>
@@ -394,17 +395,13 @@ function AuraApp() {
                   )}
                   
                   {customImage && (
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className={`absolute inset-0 flex items-center justify-center p-24 ${customType === 'mug' ? 'translate-y-4' : '-translate-y-8'}`}
-                    >
+                    <div className={`absolute inset-0 flex items-center justify-center p-24 ${customType === 'mug' ? 'translate-y-4' : '-translate-y-8'}`}>
                       <img 
                         src={customImage} 
                         alt="Custom Design" 
                         className="max-w-full max-h-full object-contain shadow-2xl rounded-lg"
                       />
-                    </motion.div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -422,108 +419,90 @@ function AuraApp() {
       </footer>
 
       {/* Cart Sidebar */}
-      <AnimatePresence>
-        {isCartOpen && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsCartOpen(false)}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
-            />
-            <motion.div 
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-brand-cream z-[70] shadow-2xl flex flex-col"
-            >
-              <div className="p-6 border-b border-black/5 flex items-center justify-between">
-                <h2 className="text-2xl font-serif">Your Bag ({cartCount})</h2>
-                <button 
-                  onClick={() => setIsCartOpen(false)}
-                  className="p-2 hover:bg-black/5 rounded-full transition-colors"
-                >
-                  <X size={24} />
-                </button>
-              </div>
+      {isCartOpen && (
+        <div className="fixed inset-0 z-[60] flex justify-end">
+          <div 
+            onClick={() => setIsCartOpen(false)}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          />
+          <div className="relative w-full max-w-md bg-brand-cream h-full shadow-2xl flex flex-col">
+            <div className="p-6 border-b border-black/5 flex items-center justify-between">
+              <h2 className="text-2xl font-serif">Your Bag ({cartCount})</h2>
+              <button 
+                onClick={() => setIsCartOpen(false)}
+                className="p-2 hover:bg-black/5 rounded-full transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
 
-              <div className="flex-grow overflow-y-auto p-6 space-y-6">
-                {cart.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
-                    <ShoppingBag size={48} strokeWidth={1} className="mb-4" />
-                    <p className="text-sm font-medium uppercase tracking-widest">Your bag is empty</p>
-                  </div>
-                ) : (
-                  cart.map((item, idx) => (
-                    <div key={`${item.id}-${idx}`} className="flex gap-4">
-                      <div className="w-24 h-32 bg-black/5 rounded-xl overflow-hidden flex-shrink-0 relative">
-                        <img 
-                          src={item.image} 
-                          alt={item.name} 
-                          className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                        {item.customDesign && (
-                          <div className="absolute inset-0 flex items-center justify-center p-4">
-                            <img 
-                              src={item.customDesign} 
-                              alt="Custom" 
-                              className="max-w-full max-h-full object-contain shadow-lg"
-                            />
-                          </div>
-                        )}
+            <div className="flex-grow overflow-y-auto p-6 space-y-6">
+              {cart.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
+                  <ShoppingBag size={48} strokeWidth={1} className="mb-4" />
+                  <p className="text-sm font-medium uppercase tracking-widest">Your bag is empty</p>
+                </div>
+              ) : (
+                cart.map((item, idx) => (
+                  <div key={`${item.id}-${idx}`} className="flex gap-4">
+                    <div className="w-24 h-32 bg-black/5 rounded-xl overflow-hidden flex-shrink-0 relative">
+                      <img 
+                        src={item.image} 
+                        alt={item.name} 
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                      {item.customDesign && (
+                        <div className="absolute inset-0 flex items-center justify-center p-4">
+                          <img 
+                            src={item.customDesign} 
+                            alt="Custom" 
+                            className="max-w-full max-h-full object-contain shadow-lg"
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-grow flex flex-col justify-between py-1">
+                      <div>
+                        <div className="flex justify-between items-start">
+                          <h3 className="font-medium">{item.name}</h3>
+                          <button 
+                            onClick={() => removeFromCart(item.id, item.customDesign)}
+                            className="opacity-40 hover:opacity-100 transition-opacity"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex-grow flex flex-col justify-between py-1">
-                        <div>
-                          <div className="flex justify-between items-start">
-                            <h3 className="font-medium">{item.name}</h3>
-                            <button 
-                              onClick={() => removeFromCart(item.id, item.customDesign)}
-                              className="opacity-40 hover:opacity-100 transition-opacity"
-                            >
-                              <X size={16} />
-                            </button>
-                          </div>
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-3 bg-black/5 rounded-full px-3 py-1">
+                          <button onClick={() => updateQuantity(item.id, -1, item.customDesign)}><Minus size={14} /></button>
+                          <span className="text-sm font-medium">{item.quantity}</span>
+                          <button onClick={() => updateQuantity(item.id, 1, item.customDesign)}><Plus size={14} /></button>
                         </div>
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-3 bg-black/5 rounded-full px-3 py-1">
-                            <button onClick={() => updateQuantity(item.id, -1, item.customDesign)}><Minus size={14} /></button>
-                            <span className="text-sm font-medium">{item.quantity}</span>
-                            <button onClick={() => updateQuantity(item.id, 1, item.customDesign)}><Plus size={14} /></button>
-                          </div>
-                          <span className="font-medium">${item.price * item.quantity}</span>
-                        </div>
+                        <span className="font-medium">${item.price * item.quantity}</span>
                       </div>
                     </div>
-                  ))
-                )}
-              </div>
-
-              {cart.length > 0 && (
-                <div className="p-6 border-t border-black/5">
-                  <div className="flex justify-between items-end mb-4">
-                    <span className="text-sm opacity-50 uppercase tracking-widest font-bold">Subtotal</span>
-                    <span className="text-2xl font-serif">${cartTotal}</span>
                   </div>
-                  <button className="w-full bg-brand-ink text-brand-cream py-4 rounded-full font-bold text-lg hover:bg-brand-ink/90 transition-colors">
-                    Checkout
-                  </button>
-                </div>
+                ))
               )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
+            </div>
 
-export default function App() {
-  return (
-    <ErrorBoundary>
-      <AuraApp />
+            {cart.length > 0 && (
+              <div className="p-6 border-t border-black/5">
+                <div className="flex justify-between items-end mb-4">
+                  <span className="text-sm opacity-50 uppercase tracking-widest font-bold">Subtotal</span>
+                  <span className="text-2xl font-serif">${cartTotal}</span>
+                </div>
+                <button className="w-full bg-brand-ink text-brand-cream py-4 rounded-full font-bold text-lg hover:bg-brand-ink/90 transition-colors">
+                  Checkout
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      </div>
     </ErrorBoundary>
   );
 }
