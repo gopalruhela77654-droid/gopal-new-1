@@ -8,10 +8,21 @@
   --color-brand-cream: #FDFCF8;
   --color-brand-ink: #1A1A1A;
   --color-brand-accent: #8E8D7A; /* Muted Olive */
+  --color-surface: #FFFFFF;
+  --color-border: rgba(0, 0, 0, 0.05);
+}
+
+@layer base {
+  .dark {
+    --color-brand-cream: #121212; /* Offblack */
+    --color-brand-ink: #FDFCF8;    /* Cream text */
+    --color-surface: #1E1E1E;     /* Slightly lighter than offblack */
+    --color-border: rgba(255, 255, 255, 0.1);
+  }
 }
 
 body {
-  @apply bg-brand-cream text-brand-ink font-sans antialiased;
+  @apply bg-brand-cream text-brand-ink font-sans antialiased transition-colors duration-300;
 }
 
 h1, h2, h3, h4 {
@@ -19,11 +30,11 @@ h1, h2, h3, h4 {
 }
 
 .aesthetic-card {
-  @apply bg-white border border-black/5 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-black/5;
+  @apply bg-surface border border-border rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-white/5;
 }
 
 .btn-primary {
-  @apply bg-brand-ink text-brand-cream px-8 py-3 rounded-full font-medium transition-transform active:scale-95 hover:bg-brand-ink/90;
+  @apply bg-brand-ink text-brand-cream px-8 py-3 rounded-full font-medium transition-transform active:scale-95 hover:opacity-90;
 }
 
 .btn-outline {

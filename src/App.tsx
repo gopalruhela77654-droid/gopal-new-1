@@ -17,7 +17,9 @@ import {
   Twitter,
   Facebook,
   ArrowRight,
-  CheckCircle2
+  CheckCircle2,
+  Moon,
+  Sun
 } from 'lucide-react';
 
 // --- Error Boundary ---
@@ -48,16 +50,16 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-red-50 p-4">
-          <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-red-100">
+        <div className="min-h-screen flex items-center justify-center bg-brand-cream p-4">
+          <div className="bg-surface p-8 rounded-2xl shadow-xl max-w-md w-full border border-border">
             <h1 className="text-2xl font-bold text-red-600 mb-4 font-serif">Something went wrong</h1>
-            <p className="text-gray-600 mb-4">The application encountered an unexpected error.</p>
-            <pre className="bg-red-50 p-4 rounded-lg text-xs text-red-800 overflow-auto max-h-40 mb-6 font-mono">
+            <p className="text-brand-ink/70 mb-4">The application encountered an unexpected error.</p>
+            <pre className="bg-red-500/10 p-4 rounded-lg text-xs text-red-600 overflow-auto max-h-40 mb-6 font-mono">
               {this.state.error?.message}
             </pre>
             <button 
               onClick={() => window.location.reload()}
-              className="w-full bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition-colors"
+              className="w-full bg-brand-ink text-brand-cream py-3 rounded-xl font-bold hover:opacity-90 transition-colors"
             >
               Reload Application
             </button>
@@ -145,11 +147,24 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = React.useState(false);
   const [customType, setCustomType] = React.useState<'tshirt' | 'mug'>('tshirt');
   const [customImage, setCustomImage] = React.useState<string | null>(null);
+  const [isDarkMode, setIsDarkMode] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     console.log("Aura Print App Mounted");
+    // Check system preference
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      setIsDarkMode(true);
+    }
   }, []);
+
+  React.useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   const addToCart = (product: Product, customDesign?: string) => {
     setCart(prev => {
@@ -218,7 +233,7 @@ export default function App() {
     <ErrorBoundary>
       <div className="min-h-screen flex flex-col bg-brand-cream text-brand-ink">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-brand-cream/80 backdrop-blur-md border-b border-black/5 px-6 py-4 flex items-center justify-between">
+      <nav className="sticky top-0 z-50 bg-brand-cream/80 backdrop-blur-md border-b border-border px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-8">
           <a href="#" className="text-2xl font-serif font-bold tracking-tighter">AURA</a>
           <div className="hidden md:flex items-center gap-6 text-sm font-medium uppercase tracking-widest opacity-70">
@@ -227,17 +242,27 @@ export default function App() {
           </div>
         </div>
         
-        <button 
-          onClick={() => setIsCartOpen(true)}
-          className="relative p-2 hover:bg-black/5 rounded-full transition-colors"
-        >
-          <ShoppingBag size={24} strokeWidth={1.5} />
-          {cartCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-brand-ink text-brand-cream text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full">
-              {cartCount}
-            </span>
-          )}
-        </button>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className="p-2 hover:bg-brand-ink/5 rounded-full transition-colors"
+            aria-label="Toggle Dark Mode"
+          >
+            {isDarkMode ? <Sun size={22} strokeWidth={1.5} /> : <Moon size={22} strokeWidth={1.5} />}
+          </button>
+          
+          <button 
+            onClick={() => setIsCartOpen(true)}
+            className="relative p-2 hover:bg-brand-ink/5 rounded-full transition-colors"
+          >
+            <ShoppingBag size={24} strokeWidth={1.5} />
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-brand-ink text-brand-cream text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                {cartCount}
+              </span>
+            )}
+          </button>
+        </div>
       </nav>
 
       <main className="flex-grow">
@@ -297,7 +322,7 @@ export default function App() {
                   />
                   <button 
                     onClick={() => addToCart(product)}
-                    className="absolute bottom-4 right-4 bg-white p-3 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-brand-ink hover:text-white"
+                    className="absolute bottom-4 right-4 bg-surface p-3 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-brand-ink hover:text-brand-cream"
                   >
                     <Plus size={20} />
                   </button>
@@ -315,7 +340,7 @@ export default function App() {
         </section>
 
         {/* Customizer Section */}
-        <section id="customize" className="py-24 bg-brand-ink text-brand-cream px-6">
+        <section id="customize" className="py-24 bg-brand-ink text-brand-cream px-6 transition-colors duration-300">
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="order-2 lg:order-1">
               <span className="text-xs font-bold tracking-[0.2em] uppercase opacity-50 mb-4 block">Studio</span>
@@ -329,7 +354,7 @@ export default function App() {
                   <button 
                     onClick={() => setCustomType('tshirt')}
                     className={`flex-1 p-6 rounded-2xl border transition-all flex flex-col items-center gap-3 ${
-                      customType === 'tshirt' ? 'bg-white text-brand-ink border-white' : 'border-white/20 hover:border-white/40'
+                      customType === 'tshirt' ? 'bg-brand-cream text-brand-ink border-brand-cream' : 'border-brand-cream/20 hover:border-brand-cream/40'
                     }`}
                   >
                     <Shirt size={32} strokeWidth={1.5} />
@@ -338,17 +363,17 @@ export default function App() {
                   <button 
                     onClick={() => setCustomType('mug')}
                     className={`flex-1 p-6 rounded-2xl border transition-all flex flex-col items-center gap-3 ${
-                      customType === 'mug' ? 'bg-white text-brand-ink border-white' : 'border-white/20 hover:border-white/40'
+                      customType === 'mug' ? 'bg-brand-cream text-brand-ink border-brand-cream' : 'border-brand-cream/20 hover:border-brand-cream/40'
                     }`}
                   >
                     <Coffee size={32} strokeWidth={1.5} />
                     <span className="font-medium">Ceramic Mug</span>
                   </button>
                 </div>
-
+ 
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-white/20 rounded-3xl p-12 text-center cursor-pointer hover:border-white/40 transition-colors group"
+                  className="border-2 border-dashed border-brand-cream/20 rounded-3xl p-12 text-center cursor-pointer hover:border-brand-cream/40 transition-colors group"
                 >
                   <input 
                     type="file" 
@@ -357,26 +382,26 @@ export default function App() {
                     className="hidden" 
                     accept="image/*"
                   />
-                  <div className="bg-white/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                  <div className="bg-brand-cream/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                     <Upload size={24} />
                   </div>
                   <h4 className="text-xl font-medium mb-2">Upload Your Artwork</h4>
                   <p className="text-sm opacity-50">PNG, JPG or SVG. Max 10MB.</p>
                 </div>
-
+ 
                 {customImage && (
                   <button 
                     onClick={handleAddCustomToCart}
-                    className="w-full bg-white text-brand-ink py-4 rounded-full font-bold text-lg hover:bg-white/90 transition-colors"
+                    className="w-full bg-brand-cream text-brand-ink py-4 rounded-full font-bold text-lg hover:opacity-90 transition-colors"
                   >
                     Add to Cart
                   </button>
                 )}
               </div>
             </div>
-
+ 
             <div className="order-1 lg:order-2 flex justify-center">
-              <div className="relative w-full max-w-md aspect-square bg-white/5 rounded-[40px] flex items-center justify-center overflow-hidden">
+              <div className="relative w-full max-w-md aspect-square bg-brand-cream/5 rounded-[40px] flex items-center justify-center overflow-hidden">
                 <div className="relative w-full h-full p-12">
                   {customType === 'tshirt' ? (
                     <img 
@@ -411,7 +436,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-brand-cream pt-24 pb-12 px-6 border-t border-black/5">
+      <footer className="bg-brand-cream pt-24 pb-12 px-6 border-t border-border transition-colors duration-300">
         <div className="max-w-7xl mx-auto text-center">
           <a href="#" className="text-3xl font-serif font-bold tracking-tighter mb-6 block">AURA</a>
           <p className="text-sm opacity-40 uppercase tracking-[0.2em]">© 2026 AURA PRINT STUDIO. ALL RIGHTS RESERVED.</p>
@@ -425,17 +450,17 @@ export default function App() {
             onClick={() => setIsCartOpen(false)}
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
           />
-          <div className="relative w-full max-w-md bg-brand-cream h-full shadow-2xl flex flex-col">
-            <div className="p-6 border-b border-black/5 flex items-center justify-between">
+          <div className="relative w-full max-w-md bg-brand-cream h-full shadow-2xl flex flex-col transition-colors duration-300">
+            <div className="p-6 border-b border-border flex items-center justify-between">
               <h2 className="text-2xl font-serif">Your Bag ({cartCount})</h2>
               <button 
                 onClick={() => setIsCartOpen(false)}
-                className="p-2 hover:bg-black/5 rounded-full transition-colors"
+                className="p-2 hover:bg-brand-ink/5 rounded-full transition-colors"
               >
                 <X size={24} />
               </button>
             </div>
-
+ 
             <div className="flex-grow overflow-y-auto p-6 space-y-6">
               {cart.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
@@ -445,7 +470,7 @@ export default function App() {
               ) : (
                 cart.map((item, idx) => (
                   <div key={`${item.id}-${idx}`} className="flex gap-4">
-                    <div className="w-24 h-32 bg-black/5 rounded-xl overflow-hidden flex-shrink-0 relative">
+                    <div className="w-24 h-32 bg-brand-ink/5 rounded-xl overflow-hidden flex-shrink-0 relative">
                       <img 
                         src={item.image} 
                         alt={item.name} 
@@ -475,7 +500,7 @@ export default function App() {
                         </div>
                       </div>
                       <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3 bg-black/5 rounded-full px-3 py-1">
+                        <div className="flex items-center gap-3 bg-brand-ink/5 rounded-full px-3 py-1">
                           <button onClick={() => updateQuantity(item.id, -1, item.customDesign)}><Minus size={14} /></button>
                           <span className="text-sm font-medium">{item.quantity}</span>
                           <button onClick={() => updateQuantity(item.id, 1, item.customDesign)}><Plus size={14} /></button>
@@ -487,14 +512,14 @@ export default function App() {
                 ))
               )}
             </div>
-
+ 
             {cart.length > 0 && (
-              <div className="p-6 border-t border-black/5">
+              <div className="p-6 border-t border-border">
                 <div className="flex justify-between items-end mb-4">
                   <span className="text-sm opacity-50 uppercase tracking-widest font-bold">Subtotal</span>
                   <span className="text-2xl font-serif">${cartTotal}</span>
                 </div>
-                <button className="w-full bg-brand-ink text-brand-cream py-4 rounded-full font-bold text-lg hover:bg-brand-ink/90 transition-colors">
+                <button className="w-full bg-brand-ink text-brand-cream py-4 rounded-full font-bold text-lg hover:opacity-90 transition-colors">
                   Checkout
                 </button>
               </div>
