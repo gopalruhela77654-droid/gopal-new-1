@@ -21,6 +21,8 @@ import {
   Moon,
   Sun
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import OrderForm from './components/OrderForm';
 
 // --- Error Boundary ---
 
@@ -145,6 +147,7 @@ const PRODUCTS: Product[] = [
 export default function App() {
   const [cart, setCart] = React.useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = React.useState(false);
+  const [isOrderFormOpen, setIsOrderFormOpen] = React.useState(false);
   const [customType, setCustomType] = React.useState<'tshirt' | 'mug'>('tshirt');
   const [customImage, setCustomImage] = React.useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = React.useState(false);
@@ -239,16 +242,45 @@ export default function App() {
           <div className="hidden md:flex items-center gap-6 text-sm font-medium uppercase tracking-widest opacity-70">
             <a href="#shop" className="hover:opacity-100 transition-opacity">Shop</a>
             <a href="#customize" className="hover:opacity-100 transition-opacity">Customize</a>
+            <button 
+              onClick={() => setIsOrderFormOpen(true)}
+              className="hover:opacity-100 transition-opacity uppercase tracking-widest"
+            >
+              Order
+            </button>
           </div>
         </div>
         
         <div className="flex items-center gap-4">
           <button 
             onClick={() => setIsDarkMode(!isDarkMode)}
-            className="p-2 hover:bg-brand-ink/5 rounded-full transition-colors"
+            className="relative w-16 h-8 rounded-full p-1 transition-all duration-500 flex items-center cursor-pointer bg-brand-ink/10 border border-border overflow-hidden"
             aria-label="Toggle Dark Mode"
           >
-            {isDarkMode ? <Sun size={22} strokeWidth={1.5} /> : <Moon size={22} strokeWidth={1.5} />}
+            {/* Background Icons */}
+            <div className="absolute inset-0 flex items-center justify-between px-2.5 opacity-20">
+              <Sun size={12} strokeWidth={2.5} />
+              <Moon size={12} strokeWidth={2.5} />
+            </div>
+
+            <motion.div
+              className="w-6 h-6 bg-brand-ink rounded-full flex items-center justify-center shadow-lg z-10"
+              animate={{ x: isDarkMode ? 32 : 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            >
+              <motion.div
+                key={isDarkMode ? 'moon' : 'sun'}
+                initial={{ rotate: -90, opacity: 0 }}
+                animate={{ rotate: 0, opacity: 1 }}
+                transition={{ duration: 0.2 }}
+              >
+                {isDarkMode ? (
+                  <Moon size={14} strokeWidth={2.5} className="text-brand-cream" />
+                ) : (
+                  <Sun size={14} strokeWidth={2.5} className="text-brand-cream" />
+                )}
+              </motion.div>
+            </motion.div>
           </button>
           
           <button 
@@ -519,7 +551,13 @@ export default function App() {
                   <span className="text-sm opacity-50 uppercase tracking-widest font-bold">Subtotal</span>
                   <span className="text-2xl font-serif">${cartTotal}</span>
                 </div>
-                <button className="w-full bg-brand-ink text-brand-cream py-4 rounded-full font-bold text-lg hover:opacity-90 transition-colors">
+                <button 
+                  onClick={() => {
+                    setIsCartOpen(false);
+                    setIsOrderFormOpen(true);
+                  }}
+                  className="w-full bg-brand-ink text-brand-cream py-4 rounded-full font-bold text-lg hover:opacity-90 transition-colors"
+                >
                   Checkout
                 </button>
               </div>
@@ -527,6 +565,13 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Order Modal */}
+      <AnimatePresence>
+        {isOrderFormOpen && (
+          <OrderForm onClose={() => setIsOrderFormOpen(false)} />
+        )}
+      </AnimatePresence>
       </div>
     </ErrorBoundary>
   );
