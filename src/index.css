@@ -1,0 +1,31 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", serif;
+  
+  --color-brand-cream: #FDFCF8;
+  --color-brand-ink: #1A1A1A;
+  --color-brand-accent: #8E8D7A; /* Muted Olive */
+}
+
+body {
+  @apply bg-brand-cream text-brand-ink font-sans antialiased;
+}
+
+h1, h2, h3, h4 {
+  @apply font-serif;
+}
+
+.aesthetic-card {
+  @apply bg-white border border-black/5 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-black/5;
+}
+
+.btn-primary {
+  @apply bg-brand-ink text-brand-cream px-8 py-3 rounded-full font-medium transition-transform active:scale-95 hover:bg-brand-ink/90;
+}
+
+.btn-outline {
+  @apply border border-brand-ink px-8 py-3 rounded-full font-medium transition-all hover:bg-brand-ink hover:text-brand-cream;
+}
