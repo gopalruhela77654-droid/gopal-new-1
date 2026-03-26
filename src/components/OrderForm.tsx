@@ -11,10 +11,10 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
   const [formData, setFormData] = React.useState({
     'form-name': 'order-submissions',
     'bot-field': '',
-    fullName: '',
+    name: '',
     whatsapp: '',
     size: 'M',
-    designId: '',
+    design: '',
     address: '',
   });
 
@@ -33,7 +33,7 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
     e.preventDefault();
     
     // Basic Validation Check
-    if (!formData.fullName || !formData.whatsapp || !formData.address || !formData.designId) {
+    if (!formData.name || !formData.whatsapp || !formData.address || !formData.design) {
       setValidationError('Please enter correct details in all fields.');
       return;
     }
@@ -133,8 +133,8 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
                   <input
                     required
                     type="text"
-                    name="fullName"
-                    value={formData.fullName}
+                    name="name"
+                    value={formData.name}
                     onChange={handleChange}
                     placeholder="John Doe"
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyan-500 transition-colors font-medium text-sm text-white"
@@ -178,8 +178,8 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
                   <input
                     required
                     type="text"
-                    name="designId"
-                    value={formData.designId}
+                    name="design"
+                    value={formData.design}
                     onChange={handleChange}
                     placeholder="e.g. AURA-001"
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyan-500 transition-colors font-medium text-sm text-white"

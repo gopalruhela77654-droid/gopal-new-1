@@ -6,12 +6,10 @@
     <title>My Google AI Studio App</title>
   </head>
   <body>
-    <div id="root"></div>
-    
     <!-- Netlify 'Ghost' Form for build-time detection -->
     <form name="order-submissions" data-netlify="true" netlify-honeypot="bot-field" hidden>
       <input type="hidden" name="form-name" value="order-submissions" />
-      <input type="text" name="fullName" />
+      <input type="text" name="name" />
       <input type="tel" name="whatsapp" />
       <select name="size">
         <option value="S"></option>
@@ -20,10 +18,12 @@
         <option value="XL"></option>
         <option value="XXL"></option>
       </select>
-      <input type="text" name="designId" />
+      <input type="text" name="design" />
       <textarea name="address"></textarea>
       <input name="bot-field" />
     </form>
+
+    <div id="root"></div>
 
     <script type="module" src="/src/main.tsx"></script>
   </body>
