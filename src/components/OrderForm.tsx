@@ -10,10 +10,11 @@ interface OrderFormProps {
 export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
   const [formData, setFormData] = React.useState({
     'form-name': 'order-submissions',
+    'bot-field': '',
     fullName: '',
     whatsapp: '',
     size: 'M',
-    designChoice: '',
+    designId: '',
     address: '',
   });
 
@@ -32,7 +33,7 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
     e.preventDefault();
     
     // Basic Validation Check
-    if (!formData.fullName || !formData.whatsapp || !formData.address || !formData.designChoice) {
+    if (!formData.fullName || !formData.whatsapp || !formData.address || !formData.designId) {
       setValidationError('Please enter correct details in all fields.');
       return;
     }
@@ -40,34 +41,32 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
     setStatus('submitting');
     setValidationError(null);
 
-    // MOCK SUCCESS for preview environment
-    // In production (Netlify), the fetch will handle it.
-    // We'll try the fetch, but if it fails or we want to force success for demo:
-    try {
-      const response = await fetch("/", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams(formData as any).toString(),
-      });
-
-      if (response.ok) {
-        setStatus('success');
-        if (onSuccess) onSuccess();
-      } else {
-        // If not on Netlify, this will likely fail. 
-        // For the sake of the user's request to "mock" it:
+    // Netlify Forms Logic
+    fetch("/", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(formData as any).toString(),
+    })
+      .then((response) => {
+        if (response.ok) {
+          setStatus('success');
+          if (onSuccess) onSuccess();
+        } else {
+          // Fallback for AI Studio Preview (Mock Success)
+          setTimeout(() => {
+            setStatus('success');
+            if (onSuccess) onSuccess();
+          }, 1000);
+        }
+      })
+      .catch((error) => {
+        console.error("Form submission error:", error);
+        // Fallback for AI Studio Preview (Mock Success)
         setTimeout(() => {
           setStatus('success');
           if (onSuccess) onSuccess();
-        }, 1500);
-      }
-    } catch (error) {
-      // Fallback to success for demo purposes in AI Studio
-      setTimeout(() => {
-        setStatus('success');
-        if (onSuccess) onSuccess();
-      }, 1500);
-    }
+        }, 1000);
+      });
   };
 
   return (
@@ -77,27 +76,27 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="absolute inset-0 bg-black/60 backdrop-blur-md"
+        className="absolute inset-0 bg-black/80 backdrop-blur-md"
       />
       
       <motion.div 
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        className="relative w-full max-w-2xl bg-surface border border-border rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+        className="relative w-full max-w-2xl bg-gray-900 border border-gray-800 rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col text-white"
       >
         <div className="p-8 md:p-12 overflow-y-auto">
           <button 
             onClick={onClose}
-            className="absolute top-6 right-6 p-2 hover:bg-brand-ink/5 rounded-full transition-colors z-20"
+            className="absolute top-6 right-6 p-2 hover:bg-white/10 rounded-full transition-colors z-20"
           >
             <X size={24} />
           </button>
 
           <div className="text-center mb-10">
-            <span className="text-xs font-bold tracking-[0.3em] uppercase opacity-50 mb-3 block font-mono">Secure Terminal</span>
+            <span className="text-xs font-bold tracking-[0.3em] uppercase text-cyan-500 mb-3 block font-mono">Secure Terminal</span>
             <h2 className="text-3xl md:text-4xl font-serif mb-3">Execute Order</h2>
-            <p className="text-brand-ink/60 max-w-sm mx-auto text-sm">Complete the parameters below to finalize your custom acquisition.</p>
+            <p className="text-gray-400 max-w-sm mx-auto text-sm">Complete the parameters below to finalize your custom acquisition.</p>
           </div>
 
           <div className="relative">
@@ -110,14 +109,19 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
               name="order-submissions" 
               method="POST" 
               data-netlify="true" 
+              data-netlify-honeypot="bot-field"
               onSubmit={handleSubmit}
               className="space-y-5"
             >
+              {/* Netlify Hidden Inputs */}
               <input type="hidden" name="form-name" value="order-submissions" />
+              <p className="hidden">
+                <label>Don’t fill this out: <input name="bot-field" onChange={handleChange} /></label>
+              </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 ml-1 font-mono">Full Identity</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-1 font-mono">Full Identity</label>
                   <input
                     required
                     type="text"
@@ -125,12 +129,12 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
                     value={formData.fullName}
                     onChange={handleChange}
                     placeholder="John Doe"
-                    className="w-full bg-brand-ink/5 dark:bg-white/5 border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-brand-ink transition-colors font-medium text-sm"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyan-500 transition-colors font-medium text-sm text-white"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 ml-1 font-mono">WhatsApp Protocol</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-1 font-mono">WhatsApp Protocol</label>
                   <input
                     required
                     type="tel"
@@ -138,20 +142,20 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
                     value={formData.whatsapp}
                     onChange={handleChange}
                     placeholder="+91 00000 00000"
-                    className="w-full bg-brand-ink/5 dark:bg-white/5 border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-brand-ink transition-colors font-medium text-sm"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyan-500 transition-colors font-medium text-sm text-white"
                   />
-                  <p className="text-[9px] opacity-40 uppercase tracking-tighter ml-1 italic">For UPI Payment Confirmation</p>
+                  <p className="text-[9px] text-cyan-500/60 uppercase tracking-tighter ml-1 italic">For UPI Payment Confirmation</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 ml-1 font-mono">Dimension (Size)</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-1 font-mono">Dimension (Size)</label>
                   <select
                     name="size"
                     value={formData.size}
                     onChange={handleChange}
-                    className="w-full bg-brand-ink/5 dark:bg-white/5 border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-brand-ink transition-colors font-medium appearance-none cursor-pointer text-sm"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyan-500 transition-colors font-medium appearance-none cursor-pointer text-sm text-white"
                   >
                     <option value="S">S - Small</option>
                     <option value="M">M - Medium</option>
@@ -162,21 +166,21 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 ml-1 font-mono">Design Configuration</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-1 font-mono">Design ID</label>
                   <input
                     required
                     type="text"
-                    name="designChoice"
-                    value={formData.designChoice}
+                    name="designId"
+                    value={formData.designId}
                     onChange={handleChange}
-                    placeholder="e.g. Minimalist Line Art"
-                    className="w-full bg-brand-ink/5 dark:bg-white/5 border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-brand-ink transition-colors font-medium text-sm"
+                    placeholder="e.g. AURA-001"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyan-500 transition-colors font-medium text-sm text-white"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest opacity-50 ml-1 font-mono">Logistics (Shipping Address)</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-1 font-mono">Logistics (Shipping Address)</label>
                 <textarea
                   required
                   name="address"
@@ -184,7 +188,7 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
                   onChange={handleChange}
                   rows={3}
                   placeholder="Full address with Pincode..."
-                  className="w-full bg-brand-ink/5 dark:bg-white/5 border border-border rounded-xl px-4 py-2.5 focus:outline-none focus:border-brand-ink transition-colors font-medium resize-none text-sm"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyan-500 transition-colors font-medium resize-none text-sm text-white"
                 />
               </div>
 
@@ -205,7 +209,7 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
               <button
                 type="submit"
                 disabled={status === 'submitting'}
-                className="w-full bg-cyan-500 text-brand-ink py-4 rounded-2xl font-bold text-base uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 mt-4"
+                className="w-full bg-cyan-500 text-gray-900 py-4 rounded-2xl font-bold text-base uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 mt-4"
               >
                 {status === 'submitting' ? (
                   <span className="flex items-center gap-2">
@@ -219,7 +223,7 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
                   </span>
                 ) : (
                   <>
-                    Execute Order <ArrowRight size={18} />
+                    Order Now <ArrowRight size={18} />
                   </>
                 )}
               </button>
