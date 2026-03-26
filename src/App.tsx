@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, Component, ErrorInfo, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ShoppingBag, 
@@ -18,9 +18,20 @@ import {
   Twitter,
   Facebook,
   ArrowRight,
-  CheckCircle2
+  CheckCircle2,
+  AlertTriangle
 } from 'lucide-react';
-import { PRODUCTS, Product } from './constants';
+
+// --- Types & Constants ---
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  category: 'tshirt' | 'mug';
+  description: string;
+}
 
 interface CartItem extends Product {
   quantity: number;
@@ -28,12 +39,106 @@ interface CartItem extends Product {
   isCustom?: boolean;
 }
 
-export default function App() {
+const PRODUCTS: Product[] = [
+  {
+    id: '1',
+    name: 'Minimalist Line Art Tee',
+    price: 28,
+    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&q=80&w=800',
+    category: 'tshirt',
+    description: '100% organic cotton with a subtle hand-drawn design.'
+  },
+  {
+    id: '2',
+    name: 'Morning Mist Mug',
+    price: 18,
+    image: 'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?auto=format&fit=crop&q=80&w=800',
+    category: 'mug',
+    description: 'Ceramic mug with a matte finish and ergonomic handle.'
+  },
+  {
+    id: '3',
+    name: 'Abstract Geometry Tee',
+    price: 32,
+    image: 'https://images.unsplash.com/photo-1562157873-818bc0726f68?auto=format&fit=crop&q=80&w=800',
+    category: 'tshirt',
+    description: 'Bold geometric shapes printed on premium heavy cotton.'
+  },
+  {
+    id: '4',
+    name: 'Terra Cotta Mug',
+    price: 22,
+    image: 'https://images.unsplash.com/photo-1577962917302-cd874c4e31d2?auto=format&fit=crop&q=80&w=800',
+    category: 'mug',
+    description: 'Hand-glazed ceramic mug in earthy tones.'
+  },
+  {
+    id: '5',
+    name: 'Vintage Botanical Tee',
+    price: 30,
+    image: 'https://images.unsplash.com/photo-1576566582149-1346997a0501?auto=format&fit=crop&q=80&w=800',
+    category: 'tshirt',
+    description: 'Soft-wash tee featuring a vintage botanical illustration.'
+  },
+  {
+    id: '6',
+    name: 'Midnight Speckle Mug',
+    price: 20,
+    image: 'https://images.unsplash.com/photo-1517142089942-ba376ce32a2e?auto=format&fit=crop&q=80&w=800',
+    category: 'mug',
+    description: 'Dark ceramic with white speckle detail.'
+  }
+];
+
+// --- Error Boundary ---
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Uncaught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-brand-cream p-6">
+          <div className="max-w-md w-full text-center space-y-4">
+            <AlertTriangle className="mx-auto text-red-500" size={48} />
+            <h1 className="text-2xl font-serif">Something went wrong</h1>
+            <p className="text-sm opacity-60">We encountered an error while rendering the application. Please try refreshing the page.</p>
+            <pre className="text-left bg-black/5 p-4 rounded-lg text-xs overflow-auto max-h-40">
+              {this.state.error?.message}
+            </pre>
+            <button 
+              onClick={() => window.location.reload()}
+              className="btn-primary w-full"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// --- Main Application ---
+
+function AuraApp() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [customType, setCustomType] = useState<'tshirt' | 'mug'>('tshirt');
   const [customImage, setCustomImage] = useState<string | null>(null);
-  const [isCustomizing, setIsCustomizing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addToCart = (product: Product, customDesign?: string) => {
@@ -97,7 +202,6 @@ export default function App() {
     
     addToCart(customProduct, customImage);
     setCustomImage(null);
-    setIsCustomizing(false);
   };
 
   return (
@@ -109,7 +213,6 @@ export default function App() {
           <div className="hidden md:flex items-center gap-6 text-sm font-medium uppercase tracking-widest opacity-70">
             <a href="#shop" className="hover:opacity-100 transition-opacity">Shop</a>
             <a href="#customize" className="hover:opacity-100 transition-opacity">Customize</a>
-            <a href="#about" className="hover:opacity-100 transition-opacity">About</a>
           </div>
         </div>
         
@@ -152,7 +255,6 @@ export default function App() {
               </h1>
               <p className="text-lg opacity-70 mb-10 max-w-xl mx-auto leading-relaxed">
                 Premium custom apparel and ceramics designed for the modern minimalist. 
-                Upload your vision or choose from our curated collection.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <a href="#customize" className="btn-primary flex items-center gap-2">
@@ -170,11 +272,6 @@ export default function App() {
             <div>
               <span className="text-xs font-bold tracking-[0.2em] uppercase opacity-50 mb-2 block">The Collection</span>
               <h2 className="text-4xl font-serif">Curated Essentials</h2>
-            </div>
-            <div className="hidden sm:flex gap-4">
-              <button className="text-sm font-medium underline underline-offset-8">All Products</button>
-              <button className="text-sm font-medium opacity-50 hover:opacity-100 transition-opacity">T-Shirts</button>
-              <button className="text-sm font-medium opacity-50 hover:opacity-100 transition-opacity">Mugs</button>
             </div>
           </div>
 
@@ -234,7 +331,6 @@ export default function App() {
                   >
                     <Shirt size={32} strokeWidth={1.5} />
                     <span className="font-medium">Premium Tee</span>
-                    <span className="text-xs opacity-60">$35.00</span>
                   </button>
                   <button 
                     onClick={() => setCustomType('mug')}
@@ -244,7 +340,6 @@ export default function App() {
                   >
                     <Coffee size={32} strokeWidth={1.5} />
                     <span className="font-medium">Ceramic Mug</span>
-                    <span className="text-xs opacity-60">$25.00</span>
                   </button>
                 </div>
 
@@ -281,7 +376,6 @@ export default function App() {
 
             <div className="order-1 lg:order-2 flex justify-center">
               <div className="relative w-full max-w-md aspect-square bg-white/5 rounded-[40px] flex items-center justify-center overflow-hidden">
-                {/* Mockup Preview */}
                 <div className="relative w-full h-full p-12">
                   {customType === 'tshirt' ? (
                     <img 
@@ -312,41 +406,8 @@ export default function App() {
                       />
                     </motion.div>
                   )}
-
-                  {!customImage && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <p className="text-sm font-medium tracking-widest opacity-30 uppercase">Preview Area</p>
-                    </div>
-                  )}
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Benefits Section */}
-        <section className="py-24 px-6 border-y border-black/5">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-brand-accent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-brand-accent">
-                <CheckCircle2 size={24} />
-              </div>
-              <h3 className="text-xl font-serif mb-3">Sustainable Sourcing</h3>
-              <p className="text-sm opacity-60 leading-relaxed">We use 100% organic cotton and ethically produced ceramics for all our products.</p>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-brand-accent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-brand-accent">
-                <CheckCircle2 size={24} />
-              </div>
-              <h3 className="text-xl font-serif mb-3">High-Fidelity Print</h3>
-              <p className="text-sm opacity-60 leading-relaxed">Our advanced DTG printing ensures your custom designs stay vibrant wash after wash.</p>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-brand-accent/10 rounded-full flex items-center justify-center mx-auto mb-6 text-brand-accent">
-                <CheckCircle2 size={24} />
-              </div>
-              <h3 className="text-xl font-serif mb-3">Global Shipping</h3>
-              <p className="text-sm opacity-60 leading-relaxed">Beautifully packaged and delivered to your doorstep, wherever you are in the world.</p>
             </div>
           </div>
         </section>
@@ -354,63 +415,9 @@ export default function App() {
 
       {/* Footer */}
       <footer className="bg-brand-cream pt-24 pb-12 px-6 border-t border-black/5">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-            <div className="lg:col-span-1">
-              <a href="#" className="text-3xl font-serif font-bold tracking-tighter mb-6 block">AURA</a>
-              <p className="text-sm opacity-60 leading-relaxed mb-8">
-                Redefining custom print through aesthetic minimalism and sustainable practices.
-              </p>
-              <div className="flex gap-4">
-                <a href="#" className="p-2 hover:bg-black/5 rounded-full transition-colors"><Instagram size={20} /></a>
-                <a href="#" className="p-2 hover:bg-black/5 rounded-full transition-colors"><Twitter size={20} /></a>
-                <a href="#" className="p-2 hover:bg-black/5 rounded-full transition-colors"><Facebook size={20} /></a>
-              </div>
-            </div>
-            
-            <div>
-              <h4 className="font-bold text-xs uppercase tracking-[0.2em] mb-6">Shop</h4>
-              <ul className="space-y-4 text-sm opacity-60">
-                <li><a href="#" className="hover:opacity-100 transition-opacity">All Products</a></li>
-                <li><a href="#" className="hover:opacity-100 transition-opacity">T-Shirts</a></li>
-                <li><a href="#" className="hover:opacity-100 transition-opacity">Coffee Mugs</a></li>
-                <li><a href="#" className="hover:opacity-100 transition-opacity">New Arrivals</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-xs uppercase tracking-[0.2em] mb-6">Support</h4>
-              <ul className="space-y-4 text-sm opacity-60">
-                <li><a href="#" className="hover:opacity-100 transition-opacity">Shipping Policy</a></li>
-                <li><a href="#" className="hover:opacity-100 transition-opacity">Returns & Exchanges</a></li>
-                <li><a href="#" className="hover:opacity-100 transition-opacity">Care Guide</a></li>
-                <li><a href="#" className="hover:opacity-100 transition-opacity">Contact Us</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-xs uppercase tracking-[0.2em] mb-6">Newsletter</h4>
-              <p className="text-sm opacity-60 mb-6">Join our community for early access and design inspiration.</p>
-              <div className="flex gap-2">
-                <input 
-                  type="email" 
-                  placeholder="Your email" 
-                  className="bg-black/5 border-none rounded-full px-4 py-2 text-sm flex-grow focus:ring-1 focus:ring-brand-ink outline-none"
-                />
-                <button className="bg-brand-ink text-brand-cream p-2 rounded-full hover:bg-brand-ink/90 transition-colors">
-                  <ChevronRight size={20} />
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          <div className="pt-8 border-t border-black/5 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] font-bold uppercase tracking-[0.2em] opacity-40">
-            <p>© 2026 AURA PRINT STUDIO. ALL RIGHTS RESERVED.</p>
-            <div className="flex gap-8">
-              <a href="#">Privacy Policy</a>
-              <a href="#">Terms of Service</a>
-            </div>
-          </div>
+        <div className="max-w-7xl mx-auto text-center">
+          <a href="#" className="text-3xl font-serif font-bold tracking-tighter mb-6 block">AURA</a>
+          <p className="text-sm opacity-40 uppercase tracking-[0.2em]">© 2026 AURA PRINT STUDIO. ALL RIGHTS RESERVED.</p>
         </div>
       </footer>
 
@@ -479,28 +486,12 @@ export default function App() {
                               <X size={16} />
                             </button>
                           </div>
-                          <p className="text-xs opacity-50 uppercase tracking-wider mt-1">{item.category}</p>
-                          {item.isCustom && (
-                            <span className="text-[10px] bg-brand-accent/10 text-brand-accent px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter mt-2 inline-block">
-                              Custom Design
-                            </span>
-                          )}
                         </div>
                         <div className="flex justify-between items-center">
                           <div className="flex items-center gap-3 bg-black/5 rounded-full px-3 py-1">
-                            <button 
-                              onClick={() => updateQuantity(item.id, -1, item.customDesign)}
-                              className="opacity-50 hover:opacity-100"
-                            >
-                              <Minus size={14} />
-                            </button>
-                            <span className="text-sm font-medium w-4 text-center">{item.quantity}</span>
-                            <button 
-                              onClick={() => updateQuantity(item.id, 1, item.customDesign)}
-                              className="opacity-50 hover:opacity-100"
-                            >
-                              <Plus size={14} />
-                            </button>
+                            <button onClick={() => updateQuantity(item.id, -1, item.customDesign)}><Minus size={14} /></button>
+                            <span className="text-sm font-medium">{item.quantity}</span>
+                            <button onClick={() => updateQuantity(item.id, 1, item.customDesign)}><Plus size={14} /></button>
                           </div>
                           <span className="font-medium">${item.price * item.quantity}</span>
                         </div>
@@ -511,12 +502,11 @@ export default function App() {
               </div>
 
               {cart.length > 0 && (
-                <div className="p-6 border-t border-black/5 space-y-4">
-                  <div className="flex justify-between items-end">
+                <div className="p-6 border-t border-black/5">
+                  <div className="flex justify-between items-end mb-4">
                     <span className="text-sm opacity-50 uppercase tracking-widest font-bold">Subtotal</span>
                     <span className="text-2xl font-serif">${cartTotal}</span>
                   </div>
-                  <p className="text-[10px] opacity-40 uppercase tracking-widest text-center">Shipping & taxes calculated at checkout</p>
                   <button className="w-full bg-brand-ink text-brand-cream py-4 rounded-full font-bold text-lg hover:bg-brand-ink/90 transition-colors">
                     Checkout
                   </button>
@@ -527,5 +517,13 @@ export default function App() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <AuraApp />
+    </ErrorBoundary>
   );
 }
