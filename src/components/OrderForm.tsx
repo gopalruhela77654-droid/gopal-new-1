@@ -52,20 +52,28 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
           setStatus('success');
           if (onSuccess) onSuccess();
         } else {
-          // Fallback for AI Studio Preview (Mock Success)
-          setTimeout(() => {
-            setStatus('success');
-            if (onSuccess) onSuccess();
-          }, 1000);
+          // Fallback for AI Studio Preview environment only
+          if (window.location.hostname.includes('run.app')) {
+            setTimeout(() => {
+              setStatus('success');
+              if (onSuccess) onSuccess();
+            }, 1000);
+          } else {
+            setStatus('error');
+          }
         }
       })
       .catch((error) => {
         console.error("Form submission error:", error);
-        // Fallback for AI Studio Preview (Mock Success)
-        setTimeout(() => {
-          setStatus('success');
-          if (onSuccess) onSuccess();
-        }, 1000);
+        // Fallback for AI Studio Preview environment only
+        if (window.location.hostname.includes('run.app')) {
+          setTimeout(() => {
+            setStatus('success');
+            if (onSuccess) onSuccess();
+          }, 1000);
+        } else {
+          setStatus('error');
+        }
       });
   };
 
