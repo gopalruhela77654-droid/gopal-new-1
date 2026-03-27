@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import OrderForm from './components/OrderForm';
+import FabricationForge from './components/FabricationForge';
 
 // --- Error Boundary ---
 
@@ -149,6 +150,7 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = React.useState(false);
   const [isOrderFormOpen, setIsOrderFormOpen] = React.useState(false);
   const [customType, setCustomType] = React.useState<'tshirt' | 'mug'>('tshirt');
+  const [productColor, setProductColor] = React.useState<'white' | 'black'>('white');
   const [customImage, setCustomImage] = React.useState<string | null>(null);
   const [selectedMainCategory, setSelectedMainCategory] = React.useState<'Preset Design' | 'Your Design'>('Your Design');
   const [mainUploadedFile, setMainUploadedFile] = React.useState<File | null>(null);
@@ -173,7 +175,8 @@ export default function App() {
     }
   }, [isDarkMode]);
 
-  const addToCart = (product: Product, customDesign?: string) => {
+  const addToCart = (product: Product, customDesign?: string, source: 'Preset Design' | 'Your Design' = 'Preset Design') => {
+    setSelectedMainCategory(source);
     setCart(prev => {
       const existing = prev.find(item => 
         item.id === product.id && item.customDesign === customDesign
@@ -238,8 +241,9 @@ export default function App() {
       description: 'Personalized design printed with high-quality ink.'
     };
     
-    addToCart(customProduct, customImage);
+    addToCart(customProduct, customImage, 'Your Design');
     setCustomImage(null);
+    setMainUploadedFile(null);
   };
 
   return (
@@ -455,6 +459,23 @@ export default function App() {
                       <span className="font-medium">Ceramic Mug</span>
                     </button>
                   </div>
+
+                  {/* Color Selection */}
+                  <div className="mt-8 space-y-4">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 block ml-1">Product Color</span>
+                    <div className="flex gap-3">
+                      <button 
+                        onClick={() => setProductColor('white')}
+                        className={`w-10 h-10 rounded-full border-2 transition-all ${productColor === 'white' ? 'border-cyan-500 scale-110 shadow-lg' : 'border-border hover:border-gray-300'} bg-white`}
+                        title="White"
+                      />
+                      <button 
+                        onClick={() => setProductColor('black')}
+                        className={`w-10 h-10 rounded-full border-2 transition-all ${productColor === 'black' ? 'border-cyan-500 scale-110 shadow-lg' : 'border-border hover:border-gray-300'} bg-black`}
+                        title="Black"
+                      />
+                    </div>
+                  </div>
                 </div>
  
                 {selectedMainCategory === 'Your Design' ? (
@@ -522,34 +543,12 @@ export default function App() {
             </div>
  
             <div className="order-1 lg:order-2 flex justify-center">
-              <div className="relative w-full max-w-md aspect-square bg-brand-cream/5 rounded-[40px] flex items-center justify-center overflow-hidden">
-                <div className="relative w-full h-full p-12">
-                  {customType === 'tshirt' ? (
-                    <img 
-                      src="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&q=80&w=800" 
-                      alt="T-shirt Mockup" 
-                      className="w-full h-full object-contain opacity-40 mix-blend-overlay"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <img 
-                      src="https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?auto=format&fit=crop&q=80&w=800" 
-                      alt="Mug Mockup" 
-                      className="w-full h-full object-contain opacity-40 mix-blend-overlay"
-                      referrerPolicy="no-referrer"
-                    />
-                  )}
-                  
-                  {customImage && (
-                    <div className={`absolute inset-0 flex items-center justify-center p-24 ${customType === 'mug' ? 'translate-y-4' : '-translate-y-8'}`}>
-                      <img 
-                        src={customImage} 
-                        alt="Custom Design" 
-                        className="max-w-full max-h-full object-contain shadow-2xl rounded-lg"
-                      />
-                    </div>
-                  )}
-                </div>
+              <div className="relative w-full max-w-md aspect-square bg-brand-cream/5 rounded-[40px] flex items-center justify-center overflow-hidden border border-brand-cream/10 shadow-2xl">
+                <FabricationForge 
+                  designImage={customImage} 
+                  productType={customType} 
+                  productColor={productColor}
+                />
               </div>
             </div>
           </div>

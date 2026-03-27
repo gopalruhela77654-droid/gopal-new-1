@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, CheckCircle2, X } from 'lucide-react';
+import { Send, CheckCircle2, X, Upload } from 'lucide-react';
 
 interface OrderFormProps {
   onSuccess?: () => void;
@@ -64,7 +64,7 @@ export default function OrderForm({ onSuccess, onClose, selectedMainCategory, ma
     
     // If we have a file from context or local selection, ensure it's in the FormData
     if (customDesignFile) {
-      submissionData.set('VIEW_DESIGN', customDesignFile);
+      submissionData.set('VIEW_CUSTOM_DESIGN', customDesignFile);
     }
 
     // Netlify Forms Logic
@@ -233,49 +233,49 @@ export default function OrderForm({ onSuccess, onClose, selectedMainCategory, ma
                     <input
                       type="file"
                       ref={fileInputRef}
-                      name="VIEW_DESIGN"
+                      name="VIEW_CUSTOM_DESIGN"
                       accept="image/*"
                       onChange={handleFileChange}
                       className="hidden"
                     />
                     
                     {customDesignFile ? (
-                      <div className="flex items-center justify-between w-full bg-cyan-500/10 border border-cyan-500/50 rounded-xl px-4 py-3 backdrop-blur-sm shadow-[0_0_15px_rgba(6,182,212,0.2)]">
-                        <div className="flex items-center gap-3 overflow-hidden">
-                          <div className="bg-cyan-500/20 p-2 rounded-lg flex items-center justify-center">
-                            <span className="text-lg leading-none">✅</span>
+                      <div className="flex items-center justify-between w-full bg-cyan-500/5 border border-cyan-500/30 rounded-xl px-4 py-4 backdrop-blur-md shadow-[0_0_20px_rgba(6,182,212,0.1)]">
+                        <div className="flex items-center gap-4 overflow-hidden">
+                          <div className="bg-cyan-500/20 p-2.5 rounded-lg flex items-center justify-center animate-pulse">
+                            <span className="text-xl leading-none">✅</span>
                           </div>
                           <div className="flex flex-col overflow-hidden">
-                            <span className="text-[10px] text-cyan-500 uppercase tracking-tighter font-bold font-mono">Design Attached</span>
-                            <span className="text-xs text-white font-medium truncate max-w-[180px]">
-                              {customDesignFile.name}
+                            <span className="text-[10px] text-cyan-500 font-bold uppercase tracking-[0.2em] font-mono">Design Attached // System Verified</span>
+                            <span className="text-xs text-white/90 font-medium truncate max-w-[180px] font-mono opacity-60">
+                              {customDesignFile.name.toUpperCase()}
                             </span>
                           </div>
                         </div>
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className="text-[10px] font-bold uppercase tracking-widest text-cyan-500 hover:text-cyan-400 transition-colors px-3 py-1.5 border border-cyan-500/20 rounded-lg hover:bg-cyan-500/10"
+                          className="text-[10px] font-bold uppercase tracking-widest text-cyan-500 hover:text-cyan-400 transition-colors px-4 py-2 border border-cyan-500/20 rounded-lg hover:bg-cyan-500/10 font-mono"
                         >
-                          Change
+                          Replace
                         </button>
                       </div>
                     ) : (
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-full bg-gray-800 border border-gray-700 border-dashed rounded-xl px-4 py-4 flex items-center justify-center gap-3 hover:border-cyan-500/50 hover:bg-gray-800/80 transition-all group"
+                        className="w-full bg-gray-800/50 border border-gray-700 border-dashed rounded-xl px-4 py-5 flex flex-col items-center justify-center gap-3 hover:border-cyan-500/50 hover:bg-gray-800/80 transition-all group"
                       >
-                        <div className="bg-gray-700 p-2 rounded-lg group-hover:bg-cyan-500/20 transition-colors">
-                          <Send size={16} className="text-gray-400 group-hover:text-cyan-500" />
+                        <div className="bg-gray-700/50 p-3 rounded-full group-hover:bg-cyan-500/20 transition-colors">
+                          <Upload size={20} className="text-gray-500 group-hover:text-cyan-500" />
                         </div>
-                        <span className="text-sm font-medium text-gray-400 group-hover:text-white">Choose Your Artwork</span>
+                        <div className="text-center">
+                          <span className="text-xs font-bold uppercase tracking-widest text-gray-500 group-hover:text-white block mb-1">Initialize Upload</span>
+                          <span className="text-[9px] text-gray-600 uppercase tracking-tighter">PNG, JPG or SVG. Max 10MB.</span>
+                        </div>
                       </button>
                     )}
                   </div>
-                  <p className="text-[9px] text-gray-500 uppercase tracking-tighter ml-1 italic">
-                    {customDesignFile ? 'Securely linked to your order' : 'Required for custom design flow'}
-                  </p>
                 </div>
               )}
 
