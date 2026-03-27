@@ -21,6 +21,7 @@ export default function OrderForm({ onSuccess, onClose, selectedMainCategory, ma
   });
 
   const [customDesignFile, setCustomDesignFile] = React.useState<File | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     if (mainUploadedFile) {
@@ -63,7 +64,7 @@ export default function OrderForm({ onSuccess, onClose, selectedMainCategory, ma
     
     // If we have a file from context or local selection, ensure it's in the FormData
     if (customDesignFile) {
-      submissionData.set('custom-design', customDesignFile);
+      submissionData.set('Custom_Design_Image_Link', customDesignFile);
     }
 
     // Netlify Forms Logic
@@ -231,22 +232,49 @@ export default function OrderForm({ onSuccess, onClose, selectedMainCategory, ma
                   <div className="relative group">
                     <input
                       type="file"
-                      name="custom-design"
+                      ref={fileInputRef}
+                      name="Custom_Design_Image_Link"
                       accept="image/*"
                       onChange={handleFileChange}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyan-500 transition-colors font-medium text-sm text-white file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-cyan-500 file:text-gray-900 hover:file:bg-cyan-400"
+                      className="hidden"
                     />
-                    {customDesignFile && (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 bg-gray-900/80 backdrop-blur-sm px-3 py-1 rounded-full border border-cyan-500/30 pointer-events-none">
-                        <CheckCircle2 size={12} className="text-cyan-500" />
-                        <span className="text-[10px] text-cyan-500 font-mono truncate max-w-[120px]">
-                          {customDesignFile.name}
-                        </span>
+                    
+                    {customDesignFile ? (
+                      <div className="flex items-center justify-between w-full bg-gray-800/50 border border-cyan-500/30 rounded-xl px-4 py-3 backdrop-blur-sm">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <div className="bg-cyan-500/20 p-2 rounded-lg">
+                            <CheckCircle2 size={18} className="text-cyan-500" />
+                          </div>
+                          <div className="flex flex-col overflow-hidden">
+                            <span className="text-[10px] text-gray-500 uppercase tracking-tighter font-mono">Design Attached</span>
+                            <span className="text-xs text-white font-medium truncate max-w-[180px]">
+                              {customDesignFile.name}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="text-[10px] font-bold uppercase tracking-widest text-cyan-500 hover:text-cyan-400 transition-colors px-3 py-1.5 border border-cyan-500/20 rounded-lg hover:bg-cyan-500/10"
+                        >
+                          Change
+                        </button>
                       </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full bg-gray-800 border border-gray-700 border-dashed rounded-xl px-4 py-4 flex items-center justify-center gap-3 hover:border-cyan-500/50 hover:bg-gray-800/80 transition-all group"
+                      >
+                        <div className="bg-gray-700 p-2 rounded-lg group-hover:bg-cyan-500/20 transition-colors">
+                          <Send size={16} className="text-gray-400 group-hover:text-cyan-500" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-400 group-hover:text-white">Choose Your Artwork</span>
+                      </button>
                     )}
                   </div>
                   <p className="text-[9px] text-gray-500 uppercase tracking-tighter ml-1 italic">
-                    {customDesignFile ? 'File detected from selection' : 'Optional: Upload your own design'}
+                    {customDesignFile ? 'Securely linked to your order' : 'Required for custom design flow'}
                   </p>
                 </div>
               )}
