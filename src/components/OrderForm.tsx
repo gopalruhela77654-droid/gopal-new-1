@@ -5,9 +5,11 @@ import { Send, CheckCircle2, X } from 'lucide-react';
 interface OrderFormProps {
   onSuccess?: () => void;
   onClose: () => void;
+  selectedMainCategory: 'Preset Design' | 'Your Design';
+  mainUploadedFile: File | null;
 }
 
-export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
+export default function OrderForm({ onSuccess, onClose, selectedMainCategory, mainUploadedFile }: OrderFormProps) {
   const [formData, setFormData] = React.useState({
     'form-name': 'order-submissions',
     'bot-field': '',
@@ -18,8 +20,23 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
     address: '',
   });
 
+  const [customDesignFile, setCustomDesignFile] = React.useState<File | null>(null);
+
+  React.useEffect(() => {
+    if (mainUploadedFile) {
+      setCustomDesignFile(mainUploadedFile);
+    }
+  }, [mainUploadedFile]);
+
   const [status, setStatus] = React.useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [validationError, setValidationError] = React.useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCustomDesignFile(file);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setValidationError(null);
@@ -43,6 +60,11 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
 
     const formElement = e.target as HTMLFormElement;
     const submissionData = new FormData(formElement);
+    
+    // If we have a file from context or local selection, ensure it's in the FormData
+    if (customDesignFile) {
+      submissionData.set('custom-design', customDesignFile);
+    }
 
     // Netlify Forms Logic
     fetch("/", {
@@ -203,16 +225,31 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-1 font-mono">Custom Design (Image)</label>
-                <input
-                  type="file"
-                  name="custom-design"
-                  accept="image/*"
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyan-500 transition-colors font-medium text-sm text-white file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-cyan-500 file:text-gray-900 hover:file:bg-cyan-400"
-                />
-                <p className="text-[9px] text-gray-500 uppercase tracking-tighter ml-1 italic">Optional: Upload your own design</p>
-              </div>
+              {selectedMainCategory === 'Your Design' && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-1 font-mono">Custom Design (Image)</label>
+                  <div className="relative group">
+                    <input
+                      type="file"
+                      name="custom-design"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyan-500 transition-colors font-medium text-sm text-white file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-cyan-500 file:text-gray-900 hover:file:bg-cyan-400"
+                    />
+                    {customDesignFile && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2 bg-gray-900/80 backdrop-blur-sm px-3 py-1 rounded-full border border-cyan-500/30 pointer-events-none">
+                        <CheckCircle2 size={12} className="text-cyan-500" />
+                        <span className="text-[10px] text-cyan-500 font-mono truncate max-w-[120px]">
+                          {customDesignFile.name}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[9px] text-gray-500 uppercase tracking-tighter ml-1 italic">
+                    {customDesignFile ? 'File detected from selection' : 'Optional: Upload your own design'}
+                  </p>
+                </div>
+              )}
 
               {validationError && (
                 <motion.div 

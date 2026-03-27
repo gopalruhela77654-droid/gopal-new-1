@@ -150,6 +150,8 @@ export default function App() {
   const [isOrderFormOpen, setIsOrderFormOpen] = React.useState(false);
   const [customType, setCustomType] = React.useState<'tshirt' | 'mug'>('tshirt');
   const [customImage, setCustomImage] = React.useState<string | null>(null);
+  const [selectedMainCategory, setSelectedMainCategory] = React.useState<'Preset Design' | 'Your Design'>('Your Design');
+  const [mainUploadedFile, setMainUploadedFile] = React.useState<File | null>(null);
   const [isDarkMode, setIsDarkMode] = React.useState(false);
   const [showToast, setShowToast] = React.useState(false);
   const [isBagAnimating, setIsBagAnimating] = React.useState(false);
@@ -213,6 +215,7 @@ export default function App() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setMainUploadedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setCustomImage(reader.result as string);
@@ -401,44 +404,111 @@ export default function App() {
               </h2>
               
               <div className="space-y-8">
-                <div className="flex gap-4">
-                  <button 
-                    onClick={() => setCustomType('tshirt')}
-                    className={`flex-1 p-6 rounded-2xl border transition-all flex flex-col items-center gap-3 ${
-                      customType === 'tshirt' ? 'bg-brand-cream text-brand-ink border-brand-cream' : 'border-brand-cream/20 hover:border-brand-cream/40'
-                    }`}
-                  >
-                    <Shirt size={32} strokeWidth={1.5} />
-                    <span className="font-medium">Premium Tee</span>
-                  </button>
-                  <button 
-                    onClick={() => setCustomType('mug')}
-                    className={`flex-1 p-6 rounded-2xl border transition-all flex flex-col items-center gap-3 ${
-                      customType === 'mug' ? 'bg-brand-cream text-brand-ink border-brand-cream' : 'border-brand-cream/20 hover:border-brand-cream/40'
-                    }`}
-                  >
-                    <Coffee size={32} strokeWidth={1.5} />
-                    <span className="font-medium">Ceramic Mug</span>
-                  </button>
+                <div className="flex flex-col gap-6">
+                  {/* Main Category Tabs */}
+                  <div className="flex bg-brand-cream/10 p-1 rounded-2xl border border-brand-cream/10">
+                    <button
+                      onClick={() => setSelectedMainCategory('Preset Design')}
+                      className={`flex-1 py-3 rounded-xl text-sm font-bold uppercase tracking-widest transition-all ${
+                        selectedMainCategory === 'Preset Design' 
+                          ? 'bg-brand-cream text-brand-ink shadow-lg' 
+                          : 'text-brand-cream/50 hover:text-brand-cream'
+                      }`}
+                    >
+                      Preset Design
+                    </button>
+                    <button
+                      onClick={() => setSelectedMainCategory('Your Design')}
+                      className={`flex-1 py-3 rounded-xl text-sm font-bold uppercase tracking-widest transition-all ${
+                        selectedMainCategory === 'Your Design' 
+                          ? 'bg-brand-cream text-brand-ink shadow-lg' 
+                          : 'text-brand-cream/50 hover:text-brand-cream'
+                      }`}
+                    >
+                      Your Design
+                    </button>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={() => {
+                        setCustomType('tshirt');
+                        setSelectedMainCategory('Your Design');
+                      }}
+                      className={`flex-1 p-6 rounded-2xl border transition-all flex flex-col items-center gap-3 ${
+                        customType === 'tshirt' ? 'bg-brand-cream text-brand-ink border-brand-cream' : 'border-brand-cream/20 hover:border-brand-cream/40'
+                      }`}
+                    >
+                      <Shirt size={32} strokeWidth={1.5} />
+                      <span className="font-medium">Premium Tee</span>
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setCustomType('mug');
+                        setSelectedMainCategory('Your Design');
+                      }}
+                      className={`flex-1 p-6 rounded-2xl border transition-all flex flex-col items-center gap-3 ${
+                        customType === 'mug' ? 'bg-brand-cream text-brand-ink border-brand-cream' : 'border-brand-cream/20 hover:border-brand-cream/40'
+                      }`}
+                    >
+                      <Coffee size={32} strokeWidth={1.5} />
+                      <span className="font-medium">Ceramic Mug</span>
+                    </button>
+                  </div>
                 </div>
  
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-brand-cream/20 rounded-3xl p-12 text-center cursor-pointer hover:border-brand-cream/40 transition-colors group"
-                >
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileUpload} 
-                    className="hidden" 
-                    accept="image/*"
-                  />
-                  <div className="bg-brand-cream/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                    <Upload size={24} />
+                {selectedMainCategory === 'Your Design' ? (
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-brand-cream/20 rounded-3xl p-12 text-center cursor-pointer hover:border-brand-cream/40 transition-all group relative overflow-hidden"
+                  >
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleFileUpload} 
+                      className="hidden" 
+                      accept="image/*"
+                    />
+                    
+                    <AnimatePresence mode="wait">
+                      {customImage ? (
+                        <motion.div 
+                          key="preview"
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="flex flex-col items-center"
+                        >
+                          <div className="relative w-24 h-24 mb-4 rounded-xl overflow-hidden border border-brand-cream/20 shadow-2xl">
+                            <img src={customImage} alt="Preview" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/20" />
+                          </div>
+                          <h4 className="text-lg font-medium mb-1 truncate max-w-[200px]">
+                            {mainUploadedFile?.name}
+                          </h4>
+                          <p className="text-xs text-brand-accent uppercase tracking-widest font-bold">Click to replace artwork</p>
+                        </motion.div>
+                      ) : (
+                        <motion.div 
+                          key="upload"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                        >
+                          <div className="bg-brand-cream/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                            <Upload size={24} />
+                          </div>
+                          <h4 className="text-xl font-medium mb-2">Upload Your Artwork</h4>
+                          <p className="text-sm opacity-50">PNG, JPG or SVG. Max 10MB.</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                  <h4 className="text-xl font-medium mb-2">Upload Your Artwork</h4>
-                  <p className="text-sm opacity-50">PNG, JPG or SVG. Max 10MB.</p>
-                </div>
+                ) : (
+                  <div className="bg-brand-cream/5 rounded-3xl p-12 text-center border border-brand-cream/10">
+                    <p className="text-brand-cream/60 italic">
+                      Browse our collection above to select a preset design for your {customType === 'tshirt' ? 'tee' : 'mug'}.
+                    </p>
+                  </div>
+                )}
  
                 {customImage && (
                   <button 
@@ -588,7 +658,11 @@ export default function App() {
       {/* Order Modal */}
       <AnimatePresence>
         {isOrderFormOpen && (
-          <OrderForm onClose={() => setIsOrderFormOpen(false)} />
+          <OrderForm 
+            onClose={() => setIsOrderFormOpen(false)} 
+            selectedMainCategory={selectedMainCategory}
+            mainUploadedFile={mainUploadedFile}
+          />
         )}
       </AnimatePresence>
 
