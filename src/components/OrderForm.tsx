@@ -29,7 +29,7 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     // Basic Validation Check
@@ -41,11 +41,13 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
     setStatus('submitting');
     setValidationError(null);
 
+    const formElement = e.target as HTMLFormElement;
+    const submissionData = new FormData(formElement);
+
     // Netlify Forms Logic
     fetch("/", {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams(formData as any).toString(),
+      body: submissionData,
     })
       .then((response) => {
         if (response.ok) {
@@ -118,6 +120,7 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
               method="POST" 
               data-netlify="true" 
               data-netlify-honeypot="bot-field"
+              encType="multipart/form-data"
               onSubmit={handleSubmit}
               className="space-y-5"
             >
@@ -198,6 +201,17 @@ export default function OrderForm({ onSuccess, onClose }: OrderFormProps) {
                   placeholder="Full address with Pincode..."
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyan-500 transition-colors font-medium resize-none text-sm text-white"
                 />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-1 font-mono">Custom Design (Image)</label>
+                <input
+                  type="file"
+                  name="custom-design"
+                  accept="image/*"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:border-cyan-500 transition-colors font-medium text-sm text-white file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-cyan-500 file:text-gray-900 hover:file:bg-cyan-400"
+                />
+                <p className="text-[9px] text-gray-500 uppercase tracking-tighter ml-1 italic">Optional: Upload your own design</p>
               </div>
 
               {validationError && (

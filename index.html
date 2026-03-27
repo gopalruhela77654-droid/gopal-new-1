@@ -7,7 +7,7 @@
   </head>
   <body>
     <!-- Netlify 'Ghost' Form for build-time detection -->
-    <form name="order-submissions" data-netlify="true" netlify-honeypot="bot-field" hidden>
+    <form name="order-submissions" data-netlify="true" netlify-honeypot="bot-field" enctype="multipart/form-data" hidden>
       <input type="hidden" name="form-name" value="order-submissions" />
       <input type="text" name="name" />
       <input type="tel" name="whatsapp" />
@@ -20,6 +20,7 @@
       </select>
       <input type="text" name="design" />
       <textarea name="address"></textarea>
+      <input type="file" name="custom-design" />
       <input name="bot-field" />
     </form>
 
