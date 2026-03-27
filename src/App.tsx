@@ -151,6 +151,8 @@ export default function App() {
   const [customType, setCustomType] = React.useState<'tshirt' | 'mug'>('tshirt');
   const [customImage, setCustomImage] = React.useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = React.useState(false);
+  const [showToast, setShowToast] = React.useState(false);
+  const [isBagAnimating, setIsBagAnimating] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
@@ -183,7 +185,12 @@ export default function App() {
       }
       return [...prev, { ...product, quantity: 1, customDesign, isCustom: !!customDesign }];
     });
-    setIsCartOpen(true);
+    
+    // Trigger animations and toast
+    setShowToast(true);
+    setIsBagAnimating(true);
+    setTimeout(() => setShowToast(false), 3000);
+    setTimeout(() => setIsBagAnimating(false), 500);
   };
 
   const removeFromCart = (id: string, customDesign?: string) => {
@@ -287,11 +294,23 @@ export default function App() {
             onClick={() => setIsCartOpen(true)}
             className="relative p-2 hover:bg-brand-ink/5 rounded-full transition-colors"
           >
-            <ShoppingBag size={24} strokeWidth={1.5} />
+            <motion.div
+              animate={isBagAnimating ? {
+                scale: [1, 1.2, 1],
+                rotate: [0, -10, 10, -10, 0],
+              } : {}}
+              transition={{ duration: 0.4 }}
+            >
+              <ShoppingBag size={24} strokeWidth={1.5} />
+            </motion.div>
             {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-brand-ink text-brand-cream text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full">
+              <motion.span 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -top-1 -right-1 bg-brand-ink text-brand-cream text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full"
+              >
                 {cartCount}
-              </span>
+              </motion.span>
             )}
           </button>
         </div>
@@ -354,7 +373,7 @@ export default function App() {
                   />
                   <button 
                     onClick={() => addToCart(product)}
-                    className="absolute bottom-4 right-4 bg-surface p-3 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-brand-ink hover:text-brand-cream"
+                    className="absolute bottom-4 right-4 bg-surface p-3 rounded-full shadow-lg opacity-100 transition-all duration-300 hover:bg-brand-ink hover:text-brand-cream"
                   >
                     <Plus size={20} />
                   </button>
@@ -570,6 +589,41 @@ export default function App() {
       <AnimatePresence>
         {isOrderFormOpen && (
           <OrderForm onClose={() => setIsOrderFormOpen(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-surface/80 backdrop-blur-xl border border-border px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3"
+          >
+            <div className="w-2 h-2 rounded-full bg-brand-accent animate-pulse" />
+            <span className="text-sm font-medium tracking-wide">Item added to bag</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Cart Button */}
+      <AnimatePresence>
+        {cartCount > 0 && !isCartOpen && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.5, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.5, y: 20 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsCartOpen(true)}
+            className="fixed bottom-6 right-6 z-50 w-16 h-16 bg-brand-ink text-brand-cream rounded-full shadow-2xl flex items-center justify-center group"
+          >
+            <ShoppingBag size={24} strokeWidth={1.5} />
+            <span className="absolute -top-1 -right-1 bg-brand-accent text-brand-cream text-[10px] font-bold w-6 h-6 flex items-center justify-center rounded-full border-2 border-brand-ink">
+              {cartCount}
+            </span>
+          </motion.button>
         )}
       </AnimatePresence>
       </div>
