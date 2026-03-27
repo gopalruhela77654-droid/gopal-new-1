@@ -64,7 +64,7 @@ export default function OrderForm({ onSuccess, onClose, selectedMainCategory, ma
     
     // If we have a file from context or local selection, ensure it's in the FormData
     if (customDesignFile) {
-      submissionData.set('Custom_Design_Image_Link', customDesignFile);
+      submissionData.set('VIEW_DESIGN', customDesignFile);
     }
 
     // Netlify Forms Logic
@@ -233,20 +233,20 @@ export default function OrderForm({ onSuccess, onClose, selectedMainCategory, ma
                     <input
                       type="file"
                       ref={fileInputRef}
-                      name="Custom_Design_Image_Link"
+                      name="VIEW_DESIGN"
                       accept="image/*"
                       onChange={handleFileChange}
                       className="hidden"
                     />
                     
                     {customDesignFile ? (
-                      <div className="flex items-center justify-between w-full bg-gray-800/50 border border-cyan-500/30 rounded-xl px-4 py-3 backdrop-blur-sm">
+                      <div className="flex items-center justify-between w-full bg-cyan-500/10 border border-cyan-500/50 rounded-xl px-4 py-3 backdrop-blur-sm shadow-[0_0_15px_rgba(6,182,212,0.2)]">
                         <div className="flex items-center gap-3 overflow-hidden">
-                          <div className="bg-cyan-500/20 p-2 rounded-lg">
-                            <CheckCircle2 size={18} className="text-cyan-500" />
+                          <div className="bg-cyan-500/20 p-2 rounded-lg flex items-center justify-center">
+                            <span className="text-lg leading-none">✅</span>
                           </div>
                           <div className="flex flex-col overflow-hidden">
-                            <span className="text-[10px] text-gray-500 uppercase tracking-tighter font-mono">Design Attached</span>
+                            <span className="text-[10px] text-cyan-500 uppercase tracking-tighter font-bold font-mono">Design Attached</span>
                             <span className="text-xs text-white font-medium truncate max-w-[180px]">
                               {customDesignFile.name}
                             </span>
