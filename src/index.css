@@ -10,6 +10,25 @@
   --color-brand-accent: #8E8D7A; /* Muted Olive */
   --color-surface: #FFFFFF;
   --color-border: rgba(0, 0, 0, 0.05);
+
+  --animate-liquid-orbit: liquid-orbit 4s linear infinite;
+  --animate-border-beam: border-beam 3s linear infinite;
+
+  @keyframes liquid-orbit {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes border-beam {
+    100% {
+      offset-distance: 100%;
+    }
+  }
+
+  @keyframes svg-beam {
+    from { stroke-dashoffset: 1; }
+    to { stroke-dashoffset: -1; }
+  }
 }
 
 @layer base {

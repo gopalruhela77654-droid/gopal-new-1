@@ -6,9 +6,6 @@
 import * as React from 'react';
 import { 
   ShoppingBag, 
-  Upload, 
-  Shirt, 
-  Coffee, 
   X, 
   Plus, 
   Minus, 
@@ -19,11 +16,13 @@ import {
   ArrowRight,
   CheckCircle2,
   Moon,
-  Sun
+  Sun,
+  Upload,
+  Shirt,
+  Coffee
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import OrderForm from './components/OrderForm';
-import FabricationForge from './components/FabricationForge';
 
 // --- Error Boundary ---
 
@@ -149,15 +148,16 @@ export default function App() {
   const [cart, setCart] = React.useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = React.useState(false);
   const [isOrderFormOpen, setIsOrderFormOpen] = React.useState(false);
-  const [customType, setCustomType] = React.useState<'tshirt' | 'mug'>('tshirt');
-  const [productColor, setProductColor] = React.useState<'white' | 'black'>('white');
-  const [customImage, setCustomImage] = React.useState<string | null>(null);
-  const [selectedMainCategory, setSelectedMainCategory] = React.useState<'Preset Design' | 'Your Design'>('Your Design');
-  const [mainUploadedFile, setMainUploadedFile] = React.useState<File | null>(null);
   const [isDarkMode, setIsDarkMode] = React.useState(false);
   const [showToast, setShowToast] = React.useState(false);
   const [isBagAnimating, setIsBagAnimating] = React.useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  
+  // Customizer State
+  const [customType, setCustomType] = React.useState<'tshirt' | 'mug'>('tshirt');
+  const [productColor, setProductColor] = React.useState('White');
+  const [customImage, setCustomImage] = React.useState<string | null>(null);
+  const [selectedMainCategory, setSelectedMainCategory] = React.useState<'Preset Design' | 'Your Design'>('Preset Design');
+  const [mainUploadedFile, setMainUploadedFile] = React.useState<File | null>(null);
 
   React.useEffect(() => {
     console.log("Aura Print App Mounted");
@@ -175,8 +175,7 @@ export default function App() {
     }
   }, [isDarkMode]);
 
-  const addToCart = (product: Product, customDesign?: string, source: 'Preset Design' | 'Your Design' = 'Preset Design') => {
-    setSelectedMainCategory(source);
+  const addToCart = (product: Product, customDesign?: string) => {
     setCart(prev => {
       const existing = prev.find(item => 
         item.id === product.id && item.customDesign === customDesign
@@ -198,6 +197,36 @@ export default function App() {
     setTimeout(() => setIsBagAnimating(false), 500);
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setMainUploadedFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setCustomImage(event.target?.result as string);
+        setSelectedMainCategory('Your Design');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddCustomToCart = () => {
+    if (!customImage) return;
+    
+    const customProduct: Product = {
+      id: `custom-${customType}-${Date.now()}`,
+      name: `Custom ${customType.charAt(0).toUpperCase() + customType.slice(1)}`,
+      price: customType === 'tshirt' ? 35 : 25,
+      image: customType === 'tshirt' 
+        ? 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&q=80&w=800'
+        : 'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?auto=format&fit=crop&q=80&w=800',
+      category: customType,
+      description: `Your unique custom design on a premium ${customType}.`
+    };
+    
+    addToCart(customProduct, customImage);
+  };
+
   const removeFromCart = (id: string, customDesign?: string) => {
     setCart(prev => prev.filter(item => !(item.id === id && item.customDesign === customDesign)));
   };
@@ -214,37 +243,6 @@ export default function App() {
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setMainUploadedFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCustomImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleAddCustomToCart = () => {
-    if (!customImage) return;
-    
-    const customProduct: Product = {
-      id: `custom-${Date.now()}`,
-      name: `Custom ${customType === 'tshirt' ? 'T-Shirt' : 'Mug'}`,
-      price: customType === 'tshirt' ? 35 : 25,
-      image: customType === 'tshirt' 
-        ? 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&q=80&w=800'
-        : 'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?auto=format&fit=crop&q=80&w=800',
-      category: customType,
-      description: 'Personalized design printed with high-quality ink.'
-    };
-    
-    addToCart(customProduct, customImage, 'Your Design');
-    setCustomImage(null);
-    setMainUploadedFile(null);
-  };
 
   return (
     <ErrorBoundary>
@@ -325,7 +323,7 @@ export default function App() {
 
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="relative h-[70vh] flex items-center justify-center overflow-hidden px-6">
+        <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden px-6 pt-4">
           <div className="absolute inset-0 z-0">
             <img 
               src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=2000" 
@@ -333,31 +331,72 @@ export default function App() {
               className="w-full h-full object-cover opacity-20"
               referrerPolicy="no-referrer"
             />
-            <div className="absolute inset-0 bg-gradient-to-b from-brand-cream/0 via-brand-cream/50 to-brand-cream" />
+            <div className="absolute inset-0 bg-gradient-to-b from-brand-cream/0 via-brand-cream/5 to-brand-cream" />
           </div>
           
           <div className="relative z-10 text-center max-w-3xl">
-            <div>
-              <span className="text-xs font-bold tracking-[0.3em] uppercase opacity-50 mb-4 block">Wear Your Story</span>
-              <h1 className="text-6xl md:text-8xl font-serif mb-8 leading-[0.9]">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            >
+              <span className="text-xs font-bold tracking-[0.3em] uppercase opacity-50 mb-6 block">Wear Your Story</span>
+              <h1 className="text-6xl md:text-8xl font-serif mb-10 leading-[0.9]">
                 Artistry in <br />
                 <span className="italic">Every Thread.</span>
               </h1>
-              <p className="text-lg opacity-70 mb-10 max-w-xl mx-auto leading-relaxed">
+              <p className="text-lg opacity-70 mb-12 max-w-xl mx-auto leading-relaxed">
                 Premium custom apparel and ceramics designed for the modern minimalist. 
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <a href="#customize" className="btn-primary flex items-center gap-2">
-                  Start Customizing <ArrowRight size={18} />
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+                <a href="#shop" className="btn-primary">Browse Collection</a>
+                <a 
+                  href="#customize" 
+                  className="relative group px-10 py-5 border border-brand-ink/20 rounded-full font-bold hover:bg-brand-ink/5 transition-all overflow-hidden"
+                >
+                  {/* Liquid Orbiting Highlight */}
+                  <div 
+                    className="absolute inset-0 pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity duration-500"
+                    style={{
+                      padding: '1.5px',
+                      maskImage: 'linear-gradient(black, black), linear-gradient(black, black)',
+                      maskClip: 'content-box, border-box',
+                      maskComposite: 'exclude',
+                      WebkitMaskComposite: 'destination-out'
+                    }}
+                  >
+                    {/* Primary Beam (Body) */}
+                    <div className="absolute inset-[-200%] animate-liquid-orbit bg-[conic-gradient(from_0deg,transparent_0%,transparent_92%,white_100%)] blur-[1.5px]" />
+                    {/* Secondary Glow (Tail) */}
+                    <div 
+                      className="absolute inset-[-200%] animate-liquid-orbit bg-[conic-gradient(from_0deg,transparent_0%,transparent_85%,rgba(255,255,255,0.4)_100%)] blur-[5px]" 
+                      style={{ animationDelay: '-0.15s' }}
+                    />
+                    {/* Bright Head (Drop) */}
+                    <div 
+                      className="absolute inset-[-200%] animate-liquid-orbit bg-[conic-gradient(from_0deg,transparent_0%,transparent_98%,white_100%)] blur-[1px]" 
+                      style={{ animationDelay: '0.02s' }}
+                    />
+                    {/* Second Orbiting Beam (Opposite Side) */}
+                    <div 
+                      className="absolute inset-[-200%] animate-liquid-orbit bg-[conic-gradient(from_0deg,transparent_0%,transparent_94%,rgba(255,255,255,0.7)_100%)] blur-[2px]" 
+                      style={{ animationDelay: '-2s' }}
+                    />
+                    {/* Second Beam Tail */}
+                    <div 
+                      className="absolute inset-[-200%] animate-liquid-orbit bg-[conic-gradient(from_0deg,transparent_0%,transparent_88%,rgba(255,255,255,0.3)_100%)] blur-[4px]" 
+                      style={{ animationDelay: '-2.15s' }}
+                    />
+                  </div>
+                  <span className="relative z-10">Create Custom</span>
                 </a>
-                <a href="#shop" className="btn-outline">Browse Collection</a>
               </div>
-            </div>
+            </motion.div>
           </div>
         </section>
 
         {/* Featured Products */}
-        <section id="shop" className="py-24 px-6 max-w-7xl mx-auto">
+        <section id="shop" className="pt-16 pb-24 px-6 max-w-7xl mx-auto">
           <div className="flex items-end justify-between mb-12">
             <div>
               <span className="text-xs font-bold tracking-[0.2em] uppercase opacity-50 mb-2 block">The Collection</span>
@@ -398,157 +437,191 @@ export default function App() {
         </section>
 
         {/* Customizer Section */}
-        <section id="customize" className="py-24 bg-brand-ink text-brand-cream px-6 transition-colors duration-300">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div className="order-2 lg:order-1">
-              <span className="text-xs font-bold tracking-[0.2em] uppercase opacity-50 mb-4 block">Studio</span>
-              <h2 className="text-5xl md:text-6xl font-serif mb-8 leading-tight">
-                Your Design, <br />
-                <span className="italic">Our Craft.</span>
-              </h2>
-              
+        <section id="customize" className="pt-20 pb-32 px-6 bg-brand-cream transition-colors duration-500">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row items-center justify-between mb-20 gap-8">
+              <div className="max-w-xl">
+                <span className="text-xs font-bold tracking-[0.3em] uppercase text-brand-accent mb-4 block">Bespoke Studio</span>
+                <h2 className="text-5xl md:text-6xl font-serif mb-6 leading-tight text-brand-ink">Personalize <br/><span className="italic">Your Aura</span></h2>
+                <p className="text-brand-ink/60 leading-relaxed text-lg">
+                  Upload your unique artwork and transform our premium essentials into your personal canvas. 
+                </p>
+              </div>
+              <div className="flex items-center gap-4 bg-brand-ink/5 p-2 rounded-full border border-brand-ink/10">
+                <button 
+                  onClick={() => setCustomType('tshirt')}
+                  className={`flex items-center gap-2 px-8 py-4 rounded-full font-bold transition-all duration-300 ${customType === 'tshirt' ? 'bg-brand-ink text-brand-cream shadow-xl scale-105' : 'hover:bg-brand-ink/10 text-brand-ink/60'}`}
+                >
+                  <Shirt size={20} /> T-Shirt
+                </button>
+                <button 
+                  onClick={() => setCustomType('mug')}
+                  className={`flex items-center gap-2 px-8 py-4 rounded-full font-bold transition-all duration-300 ${customType === 'mug' ? 'bg-brand-ink text-brand-cream shadow-xl scale-105' : 'hover:bg-brand-ink/10 text-brand-ink/60'}`}
+                >
+                  <Coffee size={20} /> Mug
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-stretch">
+              {/* Controls */}
               <div className="space-y-8">
-                <div className="flex flex-col gap-6">
-                  {/* Main Category Tabs */}
-                  <div className="flex bg-brand-cream/10 p-1 rounded-2xl border border-brand-cream/10">
-                    <button
-                      onClick={() => setSelectedMainCategory('Preset Design')}
-                      className={`flex-1 py-3 rounded-xl text-sm font-bold uppercase tracking-widest transition-all ${
-                        selectedMainCategory === 'Preset Design' 
-                          ? 'bg-brand-cream text-brand-ink shadow-lg' 
-                          : 'text-brand-cream/50 hover:text-brand-cream'
+                <div className="bg-surface border border-brand-ink/20 rounded-[2rem] p-10 shadow-xl shadow-brand-ink/5">
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-accent mb-10">01. Design Integration</h3>
+                  <div className="relative group">
+                    <input 
+                      type="file" 
+                      id="design-upload" 
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                    />
+                    <label 
+                      htmlFor="design-upload"
+                      className="flex flex-col items-center justify-center w-full aspect-video border-2 border-dashed border-brand-ink/20 rounded-3xl cursor-pointer hover:border-brand-accent hover:bg-brand-ink/[0.02] transition-all duration-500 group overflow-hidden"
+                    >
+                      {customImage ? (
+                        <div className="relative w-full h-full p-6">
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setCustomImage(null);
+                              setMainUploadedFile(null);
+                            }}
+                            className="absolute top-4 right-4 z-20 p-2 bg-brand-ink/80 text-brand-cream rounded-full hover:bg-brand-accent transition-all duration-300 backdrop-blur-md border border-brand-cream/10 shadow-xl"
+                            title="Remove Artwork"
+                          >
+                            <X size={16} />
+                          </button>
+                          <img 
+                            src={customImage} 
+                            alt="Preview" 
+                            className="w-full h-full object-contain drop-shadow-2xl"
+                          />
+                          <div className="absolute inset-0 bg-brand-ink/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                            <div className="bg-brand-cream text-brand-ink px-6 py-3 rounded-full font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                              <Upload size={14} /> Replace Artwork
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="p-6 bg-brand-ink/5 rounded-full mb-6 group-hover:scale-110 group-hover:bg-brand-accent/20 transition-all duration-500">
+                            <Upload size={32} className="text-brand-ink/40 group-hover:text-brand-accent" />
+                          </div>
+                          <span className="text-sm font-bold uppercase tracking-[0.2em] text-brand-ink/60 group-hover:text-brand-ink">Select Artwork</span>
+                          <span className="text-[10px] text-brand-ink/30 mt-3 uppercase tracking-widest">High-resolution PNG preferred</span>
+                        </>
+                      )}
+                    </label>
+                  </div>
+                </div>
+
+                <div className="bg-surface border border-brand-ink/20 rounded-[2rem] p-10 shadow-xl shadow-brand-ink/5">
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-accent mb-10">02. Specification</h3>
+                  <div className="space-y-10">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-ink/60 block mb-6">Base Colorway</label>
+                      <div className="flex items-center gap-6">
+                        {['White', 'Black'].map((color) => (
+                          <button
+                            key={color}
+                            onClick={() => setProductColor(color)}
+                            className={`group relative flex flex-col items-center gap-3`}
+                          >
+                            <div 
+                              className={`w-12 h-12 rounded-full border-2 transition-all duration-300 ${productColor === color ? 'border-brand-accent scale-110 ring-4 ring-brand-accent/20' : 'border-brand-ink/20 hover:border-brand-ink/50'}`}
+                              style={{ 
+                                backgroundColor: color === 'White' ? '#FFFFFF' : '#141414',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                              }}
+                            />
+                            <span className={`text-[9px] uppercase tracking-widest font-bold transition-opacity duration-300 ${productColor === color ? 'opacity-100 text-brand-accent' : 'opacity-60 text-brand-ink/40'}`}>
+                              {color}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <button 
+                      onClick={handleAddCustomToCart}
+                      disabled={!customImage}
+                      className={`w-full py-5 rounded-full font-bold text-lg transition-all duration-500 flex items-center justify-center gap-3 shadow-2xl ${
+                        customImage 
+                          ? 'bg-brand-ink text-brand-cream hover:bg-brand-accent hover:shadow-brand-accent/30' 
+                          : 'bg-brand-ink/20 text-brand-ink/60 cursor-not-allowed'
                       }`}
                     >
-                      Preset Design
-                    </button>
-                    <button
-                      onClick={() => setSelectedMainCategory('Your Design')}
-                      className={`flex-1 py-3 rounded-xl text-sm font-bold uppercase tracking-widest transition-all ${
-                        selectedMainCategory === 'Your Design' 
-                          ? 'bg-brand-cream text-brand-ink shadow-lg' 
-                          : 'text-brand-cream/50 hover:text-brand-cream'
-                      }`}
-                    >
-                      Your Design
+                      Add to Bag <ArrowRight size={20} />
                     </button>
                   </div>
+                </div>
+              </div>
 
-                  <div className="flex gap-4">
-                    <button 
-                      onClick={() => {
-                        setCustomType('tshirt');
-                        setSelectedMainCategory('Your Design');
-                      }}
-                      className={`flex-1 p-6 rounded-2xl border transition-all flex flex-col items-center gap-3 ${
-                        customType === 'tshirt' ? 'bg-brand-cream text-brand-ink border-brand-cream' : 'border-brand-cream/20 hover:border-brand-cream/40'
-                      }`}
-                    >
-                      <Shirt size={32} strokeWidth={1.5} />
-                      <span className="font-medium">Premium Tee</span>
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setCustomType('mug');
-                        setSelectedMainCategory('Your Design');
-                      }}
-                      className={`flex-1 p-6 rounded-2xl border transition-all flex flex-col items-center gap-3 ${
-                        customType === 'mug' ? 'bg-brand-cream text-brand-ink border-brand-cream' : 'border-brand-cream/20 hover:border-brand-cream/40'
-                      }`}
-                    >
-                      <Coffee size={32} strokeWidth={1.5} />
-                      <span className="font-medium">Ceramic Mug</span>
-                    </button>
+              {/* Info Panel */}
+              <div className="bg-brand-ink text-brand-cream rounded-[2rem] p-12 flex flex-col justify-between relative overflow-hidden group shadow-2xl shadow-brand-ink/20">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-brand-accent/20 blur-[100px] rounded-full -mr-32 -mt-32 group-hover:bg-brand-accent/30 transition-colors duration-700" />
+                
+                <div className="relative z-10 space-y-10">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.4em] text-brand-accent block">The Aura Standard</span>
+                    <span className="px-4 py-1.5 bg-brand-accent/20 border border-brand-accent/40 rounded-full text-[9px] font-bold uppercase tracking-[0.2em] text-brand-accent">Bespoke Studio</span>
                   </div>
-
-                  {/* Color Selection */}
-                  <div className="mt-8 space-y-4">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 block ml-1">Product Color</span>
-                    <div className="flex gap-3">
-                      <button 
-                        onClick={() => setProductColor('white')}
-                        className={`w-10 h-10 rounded-full border-2 transition-all ${productColor === 'white' ? 'border-cyan-500 scale-110 shadow-lg' : 'border-border hover:border-gray-300'} bg-white`}
-                        title="White"
-                      />
-                      <button 
-                        onClick={() => setProductColor('black')}
-                        className={`w-10 h-10 rounded-full border-2 transition-all ${productColor === 'black' ? 'border-cyan-500 scale-110 shadow-lg' : 'border-border hover:border-gray-300'} bg-black`}
-                        title="Black"
-                      />
+                  <div>
+                    <h3 className="text-4xl font-serif mb-6 leading-tight italic">Excellence in <br/>Production</h3>
+                    <p className="text-brand-cream/70 leading-relaxed text-lg">
+                      Our artisans meticulously review every custom creation, ensuring that every pixel of your design is translated with absolute fidelity. We utilize state-of-the-art Direct-to-Garment technology and sustainable, high-density fabrics to ensure your vision is realized with uncompromising clarity. 
+                    </p>
+                    <p className="text-brand-cream/40 leading-relaxed text-sm mt-4 italic">
+                      Each piece undergoes a rigorous triple-check process for color accuracy, placement precision, and structural integrity, resulting in a garment that feels as premium as it looks.
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-y-10 gap-x-12 pt-8 border-t border-brand-cream/10">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-cream/40 block mb-3">Core Material</span>
+                      <span className="text-base font-medium tracking-wide">100% GOTS Certified Cotton</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-cream/40 block mb-3">Print Tech</span>
+                      <span className="text-base font-medium tracking-wide">Ultra-HD Pigment Ink</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-cream/40 block mb-3">Finish</span>
+                      <span className="text-base font-medium tracking-wide">Soft-Touch Matte</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-cream/40 block mb-3">Eco-Impact</span>
+                      <span className="text-base font-medium tracking-wide">Water-Based Inks</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-cream/40 block mb-3">Inspection</span>
+                      <span className="text-base font-medium tracking-wide">Hand-Verified</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-cream/40 block mb-3">Fit</span>
+                      <span className="text-base font-medium tracking-wide">Pre-Shrunk Comfort</span>
                     </div>
                   </div>
                 </div>
- 
-                {selectedMainCategory === 'Your Design' ? (
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-brand-cream/20 rounded-3xl p-12 text-center cursor-pointer hover:border-brand-cream/40 transition-all group relative overflow-hidden"
-                  >
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      onChange={handleFileUpload} 
-                      className="hidden" 
-                      accept="image/*"
-                    />
-                    
-                    <AnimatePresence mode="wait">
-                      {customImage ? (
-                        <motion.div 
-                          key="preview"
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="flex flex-col items-center"
-                        >
-                          <div className="relative w-24 h-24 mb-4 rounded-xl overflow-hidden border border-brand-cream/20 shadow-2xl">
-                            <img src={customImage} alt="Preview" className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-black/20" />
-                          </div>
-                          <h4 className="text-lg font-medium mb-1 truncate max-w-[200px]">
-                            {mainUploadedFile?.name}
-                          </h4>
-                          <p className="text-xs text-brand-accent uppercase tracking-widest font-bold">Click to replace artwork</p>
-                        </motion.div>
-                      ) : (
-                        <motion.div 
-                          key="upload"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                        >
-                          <div className="bg-brand-cream/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                            <Upload size={24} />
-                          </div>
-                          <h4 className="text-xl font-medium mb-2">Upload Your Artwork</h4>
-                          <p className="text-sm opacity-50">PNG, JPG or SVG. Max 10MB.</p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+
+                <div className="relative z-10 mt-12 pt-12 border-t border-brand-cream/10 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-brand-accent/20 flex items-center justify-center">
+                      <CheckCircle2 size={20} className="text-brand-accent" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-widest text-brand-cream/80 block">Verified Quality</span>
+                      <span className="text-[9px] uppercase tracking-widest text-brand-accent font-bold">Ethically Sourced</span>
+                    </div>
                   </div>
-                ) : (
-                  <div className="bg-brand-cream/5 rounded-3xl p-12 text-center border border-brand-cream/10">
-                    <p className="text-brand-cream/60 italic">
-                      Browse our collection above to select a preset design for your {customType === 'tshirt' ? 'tee' : 'mug'}.
-                    </p>
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-brand-cream/30 block mb-1">Est. Delivery</span>
+                    <span className="text-sm font-medium">5-7 Business Days</span>
                   </div>
-                )}
- 
-                {customImage && (
-                  <button 
-                    onClick={handleAddCustomToCart}
-                    className="w-full bg-brand-cream text-brand-ink py-4 rounded-full font-bold text-lg hover:opacity-90 transition-colors"
-                  >
-                    Add to Cart
-                  </button>
-                )}
-              </div>
-            </div>
- 
-            <div className="order-1 lg:order-2 flex justify-center">
-              <div className="relative w-full max-w-md aspect-square bg-brand-cream/5 rounded-[40px] flex items-center justify-center overflow-hidden border border-brand-cream/10 shadow-2xl">
-                <FabricationForge 
-                  designImage={customImage} 
-                  productType={customType} 
-                  productColor={productColor}
-                />
+                </div>
               </div>
             </div>
           </div>
