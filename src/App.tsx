@@ -21,19 +21,12 @@ import {
   Upload,
   Shirt,
   Coffee,
-  CreditCard,
   AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import OrderForm from './components/OrderForm';
 
 // --- Error Boundary ---
-
-declare global {
-  interface Window {
-    Paytm: any;
-  }
-}
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -160,7 +153,6 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = React.useState(false);
   const [showToast, setShowToast] = React.useState(false);
   const [isBagAnimating, setIsBagAnimating] = React.useState(false);
-  const [paymentStatus, setPaymentStatus] = React.useState<{ status: 'success' | 'failed' | null, orderId: string | null }>({ status: null, orderId: null });
   
   // Customizer State
   const [customType, setCustomType] = React.useState<'tshirt' | 'mug'>('tshirt');
@@ -172,16 +164,6 @@ export default function App() {
   React.useEffect(() => {
     console.log("Aura Print App Mounted");
     
-    // Check for payment status in URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const status = urlParams.get('status');
-    const orderId = urlParams.get('orderId');
-    if (status && orderId) {
-      setPaymentStatus({ status: status as 'success' | 'failed', orderId });
-      // Clear URL params
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-
     // Check system preference
     if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
       setIsDarkMode(true);
@@ -264,76 +246,6 @@ export default function App() {
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-
-  const handlePaytmCheckout = async () => {
-    if (cart.length === 0) return;
-
-    const loadPaytmScript = (mid: string) => {
-      return new Promise((resolve) => {
-        if (window.Paytm && window.Paytm.CheckoutJS) {
-          resolve(true);
-          return;
-        }
-        const script = document.createElement('script');
-        script.src = `https://securegw-stage.paytm.in/merchantpgpui/checkoutjs/merchants/${mid}.js`;
-        script.onload = () => resolve(true);
-        document.body.appendChild(script);
-      });
-    };
-
-    try {
-      const orderId = `ORDER_${Date.now()}`;
-      const customerId = `CUST_${Math.floor(Math.random() * 1000000)}`;
-      
-      const response = await fetch('/api/paytm/initiate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId,
-          amount: cartTotal,
-          customerId,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.error) {
-        alert(data.error);
-        return;
-      }
-
-      if (data.body && data.body.txnToken) {
-        await loadPaytmScript(data.mid);
-
-        const config = {
-          root: "",
-          flow: "DEFAULT",
-          data: {
-            orderId: orderId,
-            token: data.body.txnToken,
-            tokenType: "TXN_TOKEN",
-            amount: cartTotal.toString(),
-          },
-          handler: {
-            notifyMerchant: function(eventName: string, data: any) {
-              console.log("notifyMerchant handler function called", eventName, data);
-            }
-          }
-        };
-
-        if (window.Paytm && window.Paytm.CheckoutJS) {
-          window.Paytm.CheckoutJS.init(config).then(function onSuccess() {
-            window.Paytm.CheckoutJS.invoke();
-          }).catch(function onError(error: any) {
-            console.log("error => ", error);
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Checkout Error:", error);
-      alert("Something went wrong during checkout. Please try again.");
-    }
-  };
 
   return (
     <ErrorBoundary>
@@ -828,10 +740,10 @@ export default function App() {
                   <span className="text-2xl font-serif">${cartTotal}</span>
                 </div>
                 <button 
-                  onClick={handlePaytmCheckout}
+                  onClick={() => setIsOrderFormOpen(true)}
                   className="w-full bg-brand-ink text-brand-cream py-4 rounded-full font-bold text-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2"
                 >
-                  <CreditCard size={20} /> Checkout with Paytm
+                  Place Order
                 </button>
               </div>
             )}
@@ -862,58 +774,6 @@ export default function App() {
             <div className="w-2 h-2 rounded-full bg-brand-accent animate-pulse" />
             <span className="text-sm font-medium tracking-wide">Item added to bag</span>
           </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Payment Status Modal */}
-      <AnimatePresence>
-        {paymentStatus.status && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-brand-cream p-10 rounded-[2.5rem] shadow-2xl max-w-md w-full text-center border border-border"
-            >
-              {paymentStatus.status === 'success' ? (
-                <div className="space-y-6">
-                  <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto">
-                    <CheckCircle2 size={40} className="text-green-500" />
-                  </div>
-                  <h2 className="text-3xl font-serif">Payment Successful</h2>
-                  <p className="text-brand-ink/60 leading-relaxed">
-                    Thank you for your order! Your payment has been processed successfully. 
-                    Order ID: <span className="font-mono font-bold text-brand-ink">{paymentStatus.orderId}</span>
-                  </p>
-                  <button 
-                    onClick={() => {
-                      setPaymentStatus({ status: null, orderId: null });
-                      setCart([]);
-                    }}
-                    className="w-full bg-brand-ink text-brand-cream py-4 rounded-full font-bold hover:opacity-90 transition-colors"
-                  >
-                    Continue Shopping
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
-                    <AlertCircle size={40} className="text-red-500" />
-                  </div>
-                  <h2 className="text-3xl font-serif">Payment Failed</h2>
-                  <p className="text-brand-ink/60 leading-relaxed">
-                    We couldn't process your payment. Please try again or use a different payment method.
-                  </p>
-                  <button 
-                    onClick={() => setPaymentStatus({ status: null, orderId: null })}
-                    className="w-full bg-brand-ink text-brand-cream py-4 rounded-full font-bold hover:opacity-90 transition-colors"
-                  >
-                    Try Again
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          </div>
         )}
       </AnimatePresence>
 
