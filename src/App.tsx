@@ -20,13 +20,20 @@ import {
   Sun,
   Upload,
   Shirt,
-  Coffee
+  Coffee,
+  CreditCard,
+  AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GoogleGenAI, Modality } from "@google/genai";
 import OrderForm from './components/OrderForm';
 
 // --- Error Boundary ---
+
+declare global {
+  interface Window {
+    Paytm: any;
+  }
+}
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -153,93 +160,8 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = React.useState(false);
   const [showToast, setShowToast] = React.useState(false);
   const [isBagAnimating, setIsBagAnimating] = React.useState(false);
+  const [paymentStatus, setPaymentStatus] = React.useState<{ status: 'success' | 'failed' | null, orderId: string | null }>({ status: null, orderId: null });
   
-  // Voice State
-  const hasPlayedVoice = React.useRef(false);
-  const customizeRef = React.useRef<HTMLElement>(null);
-
-  const playAuraVoice = async () => {
-    if (hasPlayedVoice.current) return;
-    hasPlayedVoice.current = true;
-
-    console.log("Aura Voice: Attempting to play...");
-
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
-        contents: [{ 
-          parts: [{ 
-            text: 'Say in a slow, seductive, and sophisticated female voice: Welcome... here, you can personalize your aura.' 
-          }] 
-        }],
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: 'Kore' }, 
-            },
-          },
-        },
-      });
-
-      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (base64Audio) {
-        console.log("Aura Voice: Audio data received, preparing playback...");
-        const binaryString = atob(base64Audio);
-        const len = binaryString.length;
-        const bytes = new Int16Array(len / 2);
-        for (let i = 0; i < len; i += 2) {
-          bytes[i / 2] = (binaryString.charCodeAt(i + 1) << 8) | binaryString.charCodeAt(i);
-        }
-        
-        const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
-        const audioContext = new AudioContextClass({ sampleRate: 24000 });
-        
-        // Resume context if suspended (common browser autoplay restriction)
-        if (audioContext.state === 'suspended') {
-          await audioContext.resume();
-        }
-
-        const float32Data = new Float32Array(bytes.length);
-        for (let i = 0; i < bytes.length; i++) {
-          float32Data[i] = bytes[i] / 32768;
-        }
-
-        const buffer = audioContext.createBuffer(1, float32Data.length, 24000);
-        buffer.getChannelData(0).set(float32Data);
-        const source = audioContext.createBufferSource();
-        source.buffer = buffer;
-        source.connect(audioContext.destination);
-        source.start();
-        console.log("Aura Voice: Playback started.");
-      } else {
-        console.warn("Aura Voice: No audio data in response.");
-        hasPlayedVoice.current = false;
-      }
-    } catch (error) {
-      console.error("Aura Voice: Error during playback:", error);
-      hasPlayedVoice.current = false;
-    }
-  };
-
-  React.useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          playAuraVoice();
-        }
-      },
-      { threshold: 0.3 } // Trigger when 30% of the section is visible
-    );
-
-    if (customizeRef.current) {
-      observer.observe(customizeRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
   // Customizer State
   const [customType, setCustomType] = React.useState<'tshirt' | 'mug'>('tshirt');
   const [productColor, setProductColor] = React.useState('White');
@@ -249,6 +171,17 @@ export default function App() {
 
   React.useEffect(() => {
     console.log("Aura Print App Mounted");
+    
+    // Check for payment status in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get('status');
+    const orderId = urlParams.get('orderId');
+    if (status && orderId) {
+      setPaymentStatus({ status: status as 'success' | 'failed', orderId });
+      // Clear URL params
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     // Check system preference
     if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
       setIsDarkMode(true);
@@ -331,6 +264,76 @@ export default function App() {
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  const handlePaytmCheckout = async () => {
+    if (cart.length === 0) return;
+
+    const loadPaytmScript = (mid: string) => {
+      return new Promise((resolve) => {
+        if (window.Paytm && window.Paytm.CheckoutJS) {
+          resolve(true);
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = `https://securegw-stage.paytm.in/merchantpgpui/checkoutjs/merchants/${mid}.js`;
+        script.onload = () => resolve(true);
+        document.body.appendChild(script);
+      });
+    };
+
+    try {
+      const orderId = `ORDER_${Date.now()}`;
+      const customerId = `CUST_${Math.floor(Math.random() * 1000000)}`;
+      
+      const response = await fetch('/api/paytm/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          amount: cartTotal,
+          customerId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
+
+      if (data.body && data.body.txnToken) {
+        await loadPaytmScript(data.mid);
+
+        const config = {
+          root: "",
+          flow: "DEFAULT",
+          data: {
+            orderId: orderId,
+            token: data.body.txnToken,
+            tokenType: "TXN_TOKEN",
+            amount: cartTotal.toString(),
+          },
+          handler: {
+            notifyMerchant: function(eventName: string, data: any) {
+              console.log("notifyMerchant handler function called", eventName, data);
+            }
+          }
+        };
+
+        if (window.Paytm && window.Paytm.CheckoutJS) {
+          window.Paytm.CheckoutJS.init(config).then(function onSuccess() {
+            window.Paytm.CheckoutJS.invoke();
+          }).catch(function onError(error: any) {
+            console.log("error => ", error);
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Checkout Error:", error);
+      alert("Something went wrong during checkout. Please try again.");
+    }
+  };
 
   return (
     <ErrorBoundary>
@@ -525,11 +528,7 @@ export default function App() {
         </section>
 
         {/* Customizer Section */}
-        <section 
-          id="customize" 
-          ref={customizeRef}
-          className="pt-20 pb-32 px-6 bg-brand-cream transition-colors duration-500"
-        >
+        <section id="customize" className="pt-20 pb-32 px-6 bg-brand-cream transition-colors duration-500">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row items-center justify-between mb-20 gap-8">
               <div className="max-w-xl">
@@ -540,21 +539,6 @@ export default function App() {
                 </p>
               </div>
               <div className="flex items-center gap-4 bg-brand-ink/5 p-2 rounded-full border border-brand-ink/10">
-                <button 
-                  onClick={() => {
-                    hasPlayedVoice.current = false; // Reset to allow manual trigger
-                    playAuraVoice();
-                  }}
-                  className="p-4 bg-brand-ink text-brand-cream rounded-full hover:bg-brand-accent transition-all duration-300 shadow-lg group"
-                  title="Play Aura Voice"
-                >
-                  <motion.div
-                    animate={{ scale: [1, 1.1, 1] }}
-                    transition={{ repeat: Infinity, duration: 2 }}
-                  >
-                    <Coffee size={20} className="group-hover:rotate-12 transition-transform" />
-                  </motion.div>
-                </button>
                 <button 
                   onClick={() => setCustomType('tshirt')}
                   className={`flex items-center gap-2 px-8 py-4 rounded-full font-bold transition-all duration-300 ${customType === 'tshirt' ? 'bg-brand-ink text-brand-cream shadow-xl scale-105' : 'hover:bg-brand-ink/10 text-brand-ink/60'}`}
@@ -844,13 +828,10 @@ export default function App() {
                   <span className="text-2xl font-serif">${cartTotal}</span>
                 </div>
                 <button 
-                  onClick={() => {
-                    setIsCartOpen(false);
-                    setIsOrderFormOpen(true);
-                  }}
-                  className="w-full bg-brand-ink text-brand-cream py-4 rounded-full font-bold text-lg hover:opacity-90 transition-colors"
+                  onClick={handlePaytmCheckout}
+                  className="w-full bg-brand-ink text-brand-cream py-4 rounded-full font-bold text-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2"
                 >
-                  Checkout
+                  <CreditCard size={20} /> Checkout with Paytm
                 </button>
               </div>
             )}
@@ -881,6 +862,58 @@ export default function App() {
             <div className="w-2 h-2 rounded-full bg-brand-accent animate-pulse" />
             <span className="text-sm font-medium tracking-wide">Item added to bag</span>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Payment Status Modal */}
+      <AnimatePresence>
+        {paymentStatus.status && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-brand-cream p-10 rounded-[2.5rem] shadow-2xl max-w-md w-full text-center border border-border"
+            >
+              {paymentStatus.status === 'success' ? (
+                <div className="space-y-6">
+                  <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto">
+                    <CheckCircle2 size={40} className="text-green-500" />
+                  </div>
+                  <h2 className="text-3xl font-serif">Payment Successful</h2>
+                  <p className="text-brand-ink/60 leading-relaxed">
+                    Thank you for your order! Your payment has been processed successfully. 
+                    Order ID: <span className="font-mono font-bold text-brand-ink">{paymentStatus.orderId}</span>
+                  </p>
+                  <button 
+                    onClick={() => {
+                      setPaymentStatus({ status: null, orderId: null });
+                      setCart([]);
+                    }}
+                    className="w-full bg-brand-ink text-brand-cream py-4 rounded-full font-bold hover:opacity-90 transition-colors"
+                  >
+                    Continue Shopping
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
+                    <AlertCircle size={40} className="text-red-500" />
+                  </div>
+                  <h2 className="text-3xl font-serif">Payment Failed</h2>
+                  <p className="text-brand-ink/60 leading-relaxed">
+                    We couldn't process your payment. Please try again or use a different payment method.
+                  </p>
+                  <button 
+                    onClick={() => setPaymentStatus({ status: null, orderId: null })}
+                    className="w-full bg-brand-ink text-brand-cream py-4 rounded-full font-bold hover:opacity-90 transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
