@@ -15,6 +15,7 @@ import {
   Facebook,
   ArrowRight,
   CheckCircle2,
+  Check,
   Moon,
   Sun,
   Upload,
@@ -22,6 +23,7 @@ import {
   Coffee
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { GoogleGenAI, Modality } from "@google/genai";
 import OrderForm from './components/OrderForm';
 
 // --- Error Boundary ---
@@ -152,6 +154,92 @@ export default function App() {
   const [showToast, setShowToast] = React.useState(false);
   const [isBagAnimating, setIsBagAnimating] = React.useState(false);
   
+  // Voice State
+  const hasPlayedVoice = React.useRef(false);
+  const customizeRef = React.useRef<HTMLElement>(null);
+
+  const playAuraVoice = async () => {
+    if (hasPlayedVoice.current) return;
+    hasPlayedVoice.current = true;
+
+    console.log("Aura Voice: Attempting to play...");
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ 
+          parts: [{ 
+            text: 'Say in a slow, seductive, and sophisticated female voice: Welcome... here, you can personalize your aura.' 
+          }] 
+        }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Kore' }, 
+            },
+          },
+        },
+      });
+
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (base64Audio) {
+        console.log("Aura Voice: Audio data received, preparing playback...");
+        const binaryString = atob(base64Audio);
+        const len = binaryString.length;
+        const bytes = new Int16Array(len / 2);
+        for (let i = 0; i < len; i += 2) {
+          bytes[i / 2] = (binaryString.charCodeAt(i + 1) << 8) | binaryString.charCodeAt(i);
+        }
+        
+        const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
+        const audioContext = new AudioContextClass({ sampleRate: 24000 });
+        
+        // Resume context if suspended (common browser autoplay restriction)
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+
+        const float32Data = new Float32Array(bytes.length);
+        for (let i = 0; i < bytes.length; i++) {
+          float32Data[i] = bytes[i] / 32768;
+        }
+
+        const buffer = audioContext.createBuffer(1, float32Data.length, 24000);
+        buffer.getChannelData(0).set(float32Data);
+        const source = audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioContext.destination);
+        source.start();
+        console.log("Aura Voice: Playback started.");
+      } else {
+        console.warn("Aura Voice: No audio data in response.");
+        hasPlayedVoice.current = false;
+      }
+    } catch (error) {
+      console.error("Aura Voice: Error during playback:", error);
+      hasPlayedVoice.current = false;
+    }
+  };
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          playAuraVoice();
+        }
+      },
+      { threshold: 0.3 } // Trigger when 30% of the section is visible
+    );
+
+    if (customizeRef.current) {
+      observer.observe(customizeRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
   // Customizer State
   const [customType, setCustomType] = React.useState<'tshirt' | 'mug'>('tshirt');
   const [productColor, setProductColor] = React.useState('White');
@@ -437,7 +525,11 @@ export default function App() {
         </section>
 
         {/* Customizer Section */}
-        <section id="customize" className="pt-20 pb-32 px-6 bg-brand-cream transition-colors duration-500">
+        <section 
+          id="customize" 
+          ref={customizeRef}
+          className="pt-20 pb-32 px-6 bg-brand-cream transition-colors duration-500"
+        >
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row items-center justify-between mb-20 gap-8">
               <div className="max-w-xl">
@@ -448,6 +540,21 @@ export default function App() {
                 </p>
               </div>
               <div className="flex items-center gap-4 bg-brand-ink/5 p-2 rounded-full border border-brand-ink/10">
+                <button 
+                  onClick={() => {
+                    hasPlayedVoice.current = false; // Reset to allow manual trigger
+                    playAuraVoice();
+                  }}
+                  className="p-4 bg-brand-ink text-brand-cream rounded-full hover:bg-brand-accent transition-all duration-300 shadow-lg group"
+                  title="Play Aura Voice"
+                >
+                  <motion.div
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ repeat: Infinity, duration: 2 }}
+                  >
+                    <Coffee size={20} className="group-hover:rotate-12 transition-transform" />
+                  </motion.div>
+                </button>
                 <button 
                   onClick={() => setCustomType('tshirt')}
                   className={`flex items-center gap-2 px-8 py-4 rounded-full font-bold transition-all duration-300 ${customType === 'tshirt' ? 'bg-brand-ink text-brand-cream shadow-xl scale-105' : 'hover:bg-brand-ink/10 text-brand-ink/60'}`}
@@ -523,21 +630,45 @@ export default function App() {
                   <div className="space-y-10">
                     <div>
                       <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-ink/60 block mb-6">Base Colorway</label>
-                      <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-8">
                         {['White', 'Black'].map((color) => (
                           <button
                             key={color}
                             onClick={() => setProductColor(color)}
-                            className={`group relative flex flex-col items-center gap-3`}
+                            className={`group relative flex flex-col items-center gap-4`}
                           >
                             <div 
-                              className={`w-12 h-12 rounded-full border-2 transition-all duration-300 ${productColor === color ? 'border-brand-accent scale-110 ring-4 ring-brand-accent/20' : 'border-brand-ink/20 hover:border-brand-ink/50'}`}
+                              className={`w-14 h-14 rounded-full border-2 transition-all duration-500 flex items-center justify-center relative ${
+                                productColor === color 
+                                  ? 'border-brand-accent scale-110 ring-4 ring-brand-accent/30 shadow-[0_0_20px_rgba(142,141,122,0.3)]' 
+                                  : 'border-brand-ink/10 hover:border-brand-ink/30'
+                              }`}
                               style={{ 
                                 backgroundColor: color === 'White' ? '#FFFFFF' : '#141414',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                               }}
-                            />
-                            <span className={`text-[9px] uppercase tracking-widest font-bold transition-opacity duration-300 ${productColor === color ? 'opacity-100 text-brand-accent' : 'opacity-60 text-brand-ink/40'}`}>
+                            >
+                              <AnimatePresence>
+                                {productColor === color && (
+                                  <motion.div
+                                    initial={{ scale: 0, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0, opacity: 0 }}
+                                    className={`absolute inset-0 flex items-center justify-center rounded-full ${color === 'White' ? 'bg-brand-accent/10' : 'bg-white/10'}`}
+                                  >
+                                    <Check 
+                                      size={24} 
+                                      className={color === 'White' ? 'text-brand-accent' : 'text-white'} 
+                                      strokeWidth={3}
+                                    />
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                            <span className={`text-[10px] uppercase tracking-[0.2em] font-bold transition-all duration-300 ${
+                              productColor === color 
+                                ? 'opacity-100 text-brand-accent translate-y-0' 
+                                : 'opacity-40 text-brand-ink/40 translate-y-1'
+                            }`}>
                               {color}
                             </span>
                           </button>
