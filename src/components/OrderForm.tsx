@@ -68,6 +68,7 @@ export default function OrderForm({ onSuccess, onClose, selectedMainCategory, ma
         body: JSON.stringify({
           customerName: formData.name,
           shippingAddress: formData.address,
+          contactDetails: formData.whatsapp,
           itemOrdered: formData.design,
           quantity: 1
         }),
