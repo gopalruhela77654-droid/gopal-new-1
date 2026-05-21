@@ -247,6 +247,32 @@ export default function App() {
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
+  const handlePlaceOrder = async () => {
+    try {
+      const response = await fetch('/api/place-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          customerName: "John Doe",
+          shippingAddress: "123 Aura Way, Suite 101",
+          itemOrdered: "Minimalist Line Art Tee",
+          quantity: 1
+        })
+      });
+      const data = await response.json();
+      if (data && data.success) {
+        alert(data.message);
+      } else {
+        alert("Transmission Failed");
+      }
+    } catch (error) {
+      console.error("Order transmission failed:", error);
+      alert("Transmission Failed");
+    }
+  };
+
   return (
     <ErrorBoundary>
       <div className="min-h-screen flex flex-col bg-brand-cream text-brand-ink">
@@ -260,12 +286,6 @@ export default function App() {
           <div className="hidden md:flex items-center gap-6 text-sm font-medium uppercase tracking-widest opacity-70">
             <a href="#shop" className="hover:opacity-100 transition-opacity">Shop</a>
             <a href="#customize" className="hover:opacity-100 transition-opacity">Customize</a>
-            <button 
-              onClick={() => setIsOrderFormOpen(true)}
-              className="hover:opacity-100 transition-opacity uppercase tracking-widest"
-            >
-              Order
-            </button>
           </div>
         </div>
         
@@ -746,7 +766,7 @@ export default function App() {
                   <span className="text-2xl font-serif">${cartTotal}</span>
                 </div>
                 <button 
-                  onClick={() => setIsOrderFormOpen(true)}
+                  onClick={handlePlaceOrder}
                   className="w-full bg-brand-ink text-brand-cream py-4 rounded-full font-bold text-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2"
                 >
                   Place Order
