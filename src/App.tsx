@@ -253,7 +253,10 @@ export default function App() {
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-brand-cream/80 backdrop-blur-md border-b border-border px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <a href="#" className="text-2xl font-serif font-bold tracking-tighter">AURA</a>
+          <div className="flex flex-col">
+            <a href="#" className="text-2xl font-serif font-bold tracking-tighter leading-none">AURA</a>
+            <span className="text-[8.5px] font-serif tracking-[0.45em] uppercase opacity-60 ml-0.5 mt-1 block" style={{ fontWeight: 300 }}>PROFESSIONAL</span>
+          </div>
           <div className="hidden md:flex items-center gap-6 text-sm font-medium uppercase tracking-widest opacity-70">
             <a href="#shop" className="hover:opacity-100 transition-opacity">Shop</a>
             <a href="#customize" className="hover:opacity-100 transition-opacity">Customize</a>
@@ -657,8 +660,11 @@ export default function App() {
 
       {/* Footer */}
       <footer className="bg-brand-cream pt-24 pb-12 px-6 border-t border-border transition-colors duration-300">
-        <div className="max-w-7xl mx-auto text-center">
-          <a href="#" className="text-3xl font-serif font-bold tracking-tighter mb-6 block">AURA</a>
+        <div className="max-w-7xl mx-auto text-center flex flex-col items-center">
+          <div className="flex flex-col items-center mb-6">
+            <a href="#" className="text-3xl font-serif font-bold tracking-tighter leading-none">AURA</a>
+            <span className="text-[9.5px] font-serif tracking-[0.55em] uppercase opacity-55 mt-1 ml-1 block" style={{ fontWeight: 300 }}>PROFESSIONAL</span>
+          </div>
           <p className="text-sm opacity-40 uppercase tracking-[0.2em]">© 2026 AURA PRINT STUDIO. ALL RIGHTS RESERVED.</p>
         </div>
       </footer>
