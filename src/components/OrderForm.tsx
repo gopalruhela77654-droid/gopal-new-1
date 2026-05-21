@@ -59,47 +59,34 @@ export default function OrderForm({ onSuccess, onClose, selectedMainCategory, ma
     setStatus('submitting');
     setValidationError(null);
 
-    const formElement = e.target as HTMLFormElement;
-    const submissionData = new FormData(formElement);
-    
-    // If we have a file from context or local selection, ensure it's in the FormData
-    if (customDesignFile) {
-      submissionData.set('VIEW_CUSTOM_DESIGN', customDesignFile);
-    }
-
-    // Netlify Forms Logic
-    fetch("/", {
-      method: "POST",
-      body: submissionData,
-    })
-      .then((response) => {
-        if (response.ok) {
-          setStatus('success');
-          if (onSuccess) onSuccess();
-        } else {
-          // Fallback for AI Studio Preview environment only
-          if (window.location.hostname.includes('run.app')) {
-            setTimeout(() => {
-              setStatus('success');
-              if (onSuccess) onSuccess();
-            }, 1000);
-          } else {
-            setStatus('error');
-          }
-        }
-      })
-      .catch((error) => {
-        console.error("Form submission error:", error);
-        // Fallback for AI Studio Preview environment only
-        if (window.location.hostname.includes('run.app')) {
-          setTimeout(() => {
-            setStatus('success');
-            if (onSuccess) onSuccess();
-          }, 1000);
-        } else {
-          setStatus('error');
-        }
+    try {
+      const response = await fetch('/api/place-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customerName: formData.name,
+          shippingAddress: formData.address,
+          itemOrdered: formData.design,
+          quantity: 1
+        }),
       });
+
+      const data = await response.json();
+      if (data && data.success) {
+        setStatus('success');
+        alert(data.message);
+        if (onSuccess) onSuccess();
+      } else {
+        setStatus('error');
+        alert("Transmission Failed");
+      }
+    } catch (error) {
+      console.error("Order transmission failed:", error);
+      setStatus('error');
+      alert("Transmission Failed");
+    }
   };
 
   return (
@@ -310,7 +297,7 @@ export default function OrderForm({ onSuccess, onClose, selectedMainCategory, ma
                   </span>
                 ) : (
                   <>
-                    Order Now <ArrowRight size={18} />
+                    Confirm Order <ArrowRight size={18} />
                   </>
                 )}
               </button>
