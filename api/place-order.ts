@@ -253,142 +253,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Define highly robust custom line items structure with multiple formats
     // We avoid passing non-numeric strings to product_id/variant_id to prevent WooCommerce/Shopify validation failures.
-    const lineItemsItem = {
-      sku: itemOrdered || "AURA-TSHIRT-M",
-      barcode: itemOrdered || "AURA-TSHIRT-M",
-      variant_sku: itemOrdered || "AURA-TSHIRT-M",
-      name: itemOrdered || "AURA-001 Custom Apparel",
+    const cleanLineItem = {
       title: itemOrdered || "AURA-001 Custom Apparel",
       quantity: parseInt(String(quantity || 1), 10) || 1,
-      qty: parseInt(String(quantity || 1), 10) || 1,
-      price: "0.00",
-      price_unit: "0.00",
-      rate: 0,
-      retail_price: 0
+      price: "0.00"
     };
 
-    // Construct highly robust address structure mapping postal codes, zip codes, and address lines
-    const addressBlock = {
-      first_name,
-      last_name,
-      name: nameStr,
-      address1: addressLine1,
-      address_1: addressLine1,
-      address2: addressLine2,
-      address_2: addressLine2,
-      address: addrStr,
-      city,
-      state,
-      pincode,
-      postcode: pincode,
-      post_code: pincode,
-      pin_code: pincode,
-      zip: pincode,
-      zipcode: pincode,
-      phone,
-      country: "IN",
-      email: "guest@example.com"
-    };
-
-    const qikinkOrderPayload: Record<string, any> = {
-      // Direct personal/customer/address fields at the root level as requested by Qikink
-      first_name,
-      name: nameStr,
-      last_name,
-      phone,
-      contact_no: phone,
-      email: "guest@example.com",
-      address1: addressLine1,
-      address_1: addressLine1,
-      address2: addressLine2,
-      address_2: addressLine2,
-      address: addrStr,
-      city,
-      state,
-      pincode,
-      zip: pincode,
-      postcode: pincode,
-      post_code: pincode,
-      pin_code: pincode,
-      zipcode: pincode,
-      country: "IN",
-
-      // 1. Root level flat properties (for Custom flat APIs and WooCommerce v2/v3)
+    const qikinkOrderPayload = {
       order_number: `AURA_ORDER_${timestamp}`,
       order_id: `AURA_ORDER_${timestamp}`,
-      status: "draft",
-      payment_method: "prepaid",
-      payment_type: "prepaid",
-      shipping_method: "flat_rate",
-      shipping_address: addressBlock,
-      billing_address: addressBlock,
-      shipping: addressBlock,
-      billing: addressBlock,
-      line_items: [lineItemsItem],
-      line_item: [lineItemsItem],
-      items: [lineItemsItem],
-      products: [lineItemsItem],
-      order_items: [lineItemsItem],
-      cart_items: [lineItemsItem],
-      
-      // 2. Wrap for WooCommerce nested or other custom nested expectations
-      order: {
-        order_number: `AURA_ORDER_${timestamp}`,
-        order_id: `AURA_ORDER_${timestamp}`,
-        status: "draft",
-        payment_method: "prepaid",
-        payment_type: "prepaid",
-        shipping_method: "flat_rate",
-        shipping_address: addressBlock,
-        billing_address: addressBlock,
-        shipping: addressBlock,
-        billing: addressBlock,
-        line_items: [lineItemsItem],
-        line_item: [lineItemsItem],
-        items: [lineItemsItem],
-        products: [lineItemsItem],
-        order_items: [lineItemsItem],
-        cart_items: [lineItemsItem],
-      },
-
-      // 3. Wrap for Shopify-style nested draft order expectations
-      draft_order: {
-        order_number: `AURA_ORDER_${timestamp}`,
-        order_key: `AURA_ORDER_${timestamp}`,
-        order_id: `AURA_ORDER_${timestamp}`,
-        status: "draft",
-        payment_method: "prepaid",
-        payment_type: "prepaid",
-        shipping_address: addressBlock,
-        billing_address: addressBlock,
-        shipping: addressBlock,
-        billing: addressBlock,
-        line_items: [lineItemsItem],
-        line_item: [lineItemsItem],
-        items: [lineItemsItem],
-        products: [lineItemsItem],
-        order_items: [lineItemsItem],
-        cart_items: [lineItemsItem],
-      },
-
-      // 4. Wrap for other WooCommerce/custom nested expectations
-      order_data: {
-        order_number: `AURA_ORDER_${timestamp}`,
-        order_id: `AURA_ORDER_${timestamp}`,
-        status: "draft",
-        payment_method: "prepaid",
-        payment_type: "prepaid",
-        shipping_address: addressBlock,
-        billing_address: addressBlock,
-        shipping: addressBlock,
-        billing: addressBlock,
-        line_items: [lineItemsItem],
-        line_item: [lineItemsItem],
-        items: [lineItemsItem],
-        products: [lineItemsItem],
-        order_items: [lineItemsItem],
-        cart_items: [lineItemsItem],
-      }
+      name: nameStr,
+      phone: phone,
+      email: "guest@example.com",
+      address: addrStr,
+      city: city,
+      state: state,
+      pincode: pincode,
+      payment_mode: "PREPAID",
+      line_items: [cleanLineItem]
     };
 
     console.log("Transmitting mapped draft order payload to Qikink:", JSON.stringify(qikinkOrderPayload, null, 2));
@@ -415,7 +297,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Clean up base endpoint URL and construct exact target paths as requested
     const baseEndpoint = qikinkEndpoint.endsWith('/') ? qikinkEndpoint.slice(0, -1) : qikinkEndpoint;
-    const primaryUrl = `${baseEndpoint}/order`;
+    const primaryUrl = `${baseEndpoint}/api/order`;
     const fallbackUrl = `${baseEndpoint}/api/order`;
 
     let orderSuccess = false;
