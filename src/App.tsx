@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import OrderForm from './components/OrderForm';
+import whitePlainTshirt from './assets/images/white_plain_tshirt_1779533354809.png';
+import whiteCeramicMug from './assets/images/white_ceramic_mug_1779533374051.png';
 
 // --- Error Boundary ---
 
@@ -98,7 +100,7 @@ const PRODUCTS: Product[] = [
     id: '1',
     name: 'Minimalist Line Art Tee',
     price: 28,
-    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&q=80&w=800',
+    image: whitePlainTshirt,
     category: 'tshirt',
     description: '100% organic cotton with a subtle hand-drawn design.'
   },
@@ -106,7 +108,7 @@ const PRODUCTS: Product[] = [
     id: '2',
     name: 'Morning Mist Mug',
     price: 18,
-    image: 'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?auto=format&fit=crop&q=80&w=800',
+    image: whiteCeramicMug,
     category: 'mug',
     description: 'Ceramic mug with a matte finish and ergonomic handle.'
   },
@@ -114,7 +116,7 @@ const PRODUCTS: Product[] = [
     id: '3',
     name: 'Abstract Geometry Tee',
     price: 32,
-    image: 'https://images.unsplash.com/photo-1562157873-818bc0726f68?auto=format&fit=crop&q=80&w=800',
+    image: whitePlainTshirt,
     category: 'tshirt',
     description: 'Bold geometric shapes printed on premium heavy cotton.'
   },
@@ -122,7 +124,7 @@ const PRODUCTS: Product[] = [
     id: '4',
     name: 'Terra Cotta Mug',
     price: 22,
-    image: 'https://images.unsplash.com/photo-1577962917302-cd874c4e31d2?auto=format&fit=crop&q=80&w=800',
+    image: whiteCeramicMug,
     category: 'mug',
     description: 'Hand-glazed ceramic mug in earthy tones.'
   },
@@ -130,7 +132,7 @@ const PRODUCTS: Product[] = [
     id: '5',
     name: 'Vintage Botanical Tee',
     price: 30,
-    image: 'https://images.unsplash.com/photo-1576566582149-1346997a0501?auto=format&fit=crop&q=80&w=800',
+    image: whitePlainTshirt,
     category: 'tshirt',
     description: 'Soft-wash tee featuring a vintage botanical illustration.'
   },
@@ -138,7 +140,7 @@ const PRODUCTS: Product[] = [
     id: '6',
     name: 'Midnight Speckle Mug',
     price: 20,
-    image: 'https://images.unsplash.com/photo-1517142089942-ba376ce32a2e?auto=format&fit=crop&q=80&w=800',
+    image: whiteCeramicMug,
     category: 'mug',
     description: 'Dark ceramic with white speckle detail.'
   }
@@ -220,9 +222,7 @@ export default function App() {
       id: `custom-${customType}-${Date.now()}`,
       name: `Custom ${customType.charAt(0).toUpperCase() + customType.slice(1)}`,
       price: customType === 'tshirt' ? 35 : 25,
-      image: customType === 'tshirt' 
-        ? 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&q=80&w=800'
-        : 'https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?auto=format&fit=crop&q=80&w=800',
+      image: customType === 'tshirt' ? whitePlainTshirt : whiteCeramicMug,
       category: customType,
       description: `Your unique custom design on a premium ${customType}.`
     };
