@@ -81,12 +81,12 @@ export default function OrderForm({ onSuccess, onClose, selectedMainCategory, ma
         if (onSuccess) onSuccess();
       } else {
         setStatus('error');
-        alert("Transmission Failed");
+        alert("Transmission Failed: " + (data?.message || "Unknown error"));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Order transmission failed:", error);
       setStatus('error');
-      alert("Transmission Failed");
+      alert("Transmission Failed: " + (error?.message || "Connection error."));
     }
   };
 
