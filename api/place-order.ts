@@ -295,59 +295,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log("Submitting order with mixed headers:", Object.keys(orderHeaders).filter(k => k.toLowerCase() !== 'x-client-secret' && k.toLowerCase() !== 'client_secret').join(', '));
 
-    // Clean up base endpoint URL and construct exact target paths as requested
-    const baseEndpoint = qikinkEndpoint.endsWith('/') ? qikinkEndpoint.slice(0, -1) : qikinkEndpoint;
-    const primaryUrl = `${baseEndpoint}/api/order`;
-    const fallbackUrl = `${baseEndpoint}/api/order`;
+    // Set the single, absolute destination URL strictly to https://api.qikink.com/api/order
+    const targetUrl = "https://api.qikink.com/api/order";
 
     let orderSuccess = false;
     let finalOrderResponseText = "";
-    let attemptResults: string[] = [];
 
-    // Attempt 1: POST to primary /order endpoint
     try {
-      console.log(`[Order Creation] Attempting POST to primary URL: ${primaryUrl}`);
-      const response = await fetch(primaryUrl, {
+      console.log(`[Order Creation] Attempting POST strictly to absolute URL: ${targetUrl}`);
+      const response = await fetch(targetUrl, {
         method: 'POST',
         headers: orderHeaders,
         body: JSON.stringify(qikinkOrderPayload)
       });
       finalOrderResponseText = await response.text();
-      attemptResults.push(`Primary (${primaryUrl}) status: ${response.status}, text: ${finalOrderResponseText}`);
-      console.log(`[Order Attempt] Primary endpoint returned status ${response.status}: ${finalOrderResponseText}`);
+      console.log(`[Order Attempt] Endpoint returned status ${response.status}: ${finalOrderResponseText}`);
 
       if (response.ok) {
         orderSuccess = true;
       }
     } catch (err: any) {
-      console.error(`Error attempting primary order post to ${primaryUrl}:`, err);
-      attemptResults.push(`Primary (${primaryUrl}) failed with error: ${err?.message || String(err)}`);
-    }
-
-    // Attempt 2: POST to fallback /api/order endpoint if primary failed
-    if (!orderSuccess) {
-      try {
-        console.log(`[Order Creation] Primary target failed. Attempting fallback URL: ${fallbackUrl}`);
-        const response = await fetch(fallbackUrl, {
-          method: 'POST',
-          headers: orderHeaders,
-          body: JSON.stringify(qikinkOrderPayload)
-        });
-        finalOrderResponseText = await response.text();
-        attemptResults.push(`Fallback (${fallbackUrl}) status: ${response.status}, text: ${finalOrderResponseText}`);
-        console.log(`[Order Attempt] Fallback endpoint returned status ${response.status}: ${finalOrderResponseText}`);
-
-        if (response.ok) {
-          orderSuccess = true;
-        }
-      } catch (err: any) {
-        console.error(`Error attempting fallback order post to ${fallbackUrl}:`, err);
-        attemptResults.push(`Fallback (${fallbackUrl}) failed with error: ${err?.message || String(err)}`);
-      }
+      console.error(`Error attempting order post to ${targetUrl}:`, err);
+      throw new Error(`Qikink Order creation failed at absolute URL (${targetUrl}): ${err?.message || String(err)}`);
     }
 
     if (!orderSuccess) {
-      throw new Error(`Qikink Order creation failed at both primary (/order) and fallback (/api/order) endpoints:\n${attemptResults.join('\n')}`);
+      throw new Error(`Qikink Order creation failed at absolute URL (${targetUrl}). Response was: ${finalOrderResponseText}`);
     }
 
     let qikinkResponseData: any = null;
