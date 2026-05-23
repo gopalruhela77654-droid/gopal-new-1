@@ -291,6 +291,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
 
     const qikinkOrderPayload: Record<string, any> = {
+      // Direct personal/customer/address fields at the root level as requested by Qikink
+      first_name,
+      name: nameStr,
+      last_name,
+      phone,
+      contact_no: phone,
+      email: "guest@example.com",
+      address1: addressLine1,
+      address_1: addressLine1,
+      address2: addressLine2,
+      address_2: addressLine2,
+      address: addrStr,
+      city,
+      state,
+      pincode,
+      zip: pincode,
+      postcode: pincode,
+      post_code: pincode,
+      pin_code: pincode,
+      zipcode: pincode,
+      country: "IN",
+
       // 1. Root level flat properties (for Custom flat APIs and WooCommerce v2/v3)
       order_number: `AURA_ORDER_${timestamp}`,
       order_id: `AURA_ORDER_${timestamp}`,
