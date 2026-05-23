@@ -349,51 +349,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log("Submitting order with mixed headers:", Object.keys(orderHeaders).filter(k => k.toLowerCase() !== 'x-client-secret' && k.toLowerCase() !== 'client_secret').join(', '));
 
-    // Attempt order creation across multiple potential endpoints (v2, v1, singular, plural, etc.)
-    const orderPathsToTry = [
-      '/v2/orders',
-      '/v2/order',
-      '/orders',
-      '/order',
-      '/v2/draft-orders',
-      '/v2/draft-order'
-    ];
+    // Clean up base endpoint URL and construct exact target paths as requested
+    const baseEndpoint = qikinkEndpoint.endsWith('/') ? qikinkEndpoint.slice(0, -1) : qikinkEndpoint;
+    const primaryUrl = `${baseEndpoint}/order`;
+    const fallbackUrl = `${baseEndpoint}/api/order`;
 
     let orderSuccess = false;
-    let successfulPath = "";
     let finalOrderResponseText = "";
-    const attemptResults: Array<{ path: string; status: number; text: string }> = [];
+    let attemptResults: string[] = [];
 
-    for (const path of orderPathsToTry) {
-      const targetUrl = `${qikinkEndpoint}${path}`;
-      console.log(`[Order Creation] Attempting POST to ${targetUrl}`);
+    // Attempt 1: POST to primary /order endpoint
+    try {
+      console.log(`[Order Creation] Attempting POST to primary URL: ${primaryUrl}`);
+      const response = await fetch(primaryUrl, {
+        method: 'POST',
+        headers: orderHeaders,
+        body: JSON.stringify(qikinkOrderPayload)
+      });
+      finalOrderResponseText = await response.text();
+      attemptResults.push(`Primary (${primaryUrl}) status: ${response.status}, text: ${finalOrderResponseText}`);
+      console.log(`[Order Attempt] Primary endpoint returned status ${response.status}: ${finalOrderResponseText}`);
 
+      if (response.ok) {
+        orderSuccess = true;
+      }
+    } catch (err: any) {
+      console.error(`Error attempting primary order post to ${primaryUrl}:`, err);
+      attemptResults.push(`Primary (${primaryUrl}) failed with error: ${err?.message || String(err)}`);
+    }
+
+    // Attempt 2: POST to fallback /api/order endpoint if primary failed
+    if (!orderSuccess) {
       try {
-        const response = await fetch(targetUrl, {
+        console.log(`[Order Creation] Primary target failed. Attempting fallback URL: ${fallbackUrl}`);
+        const response = await fetch(fallbackUrl, {
           method: 'POST',
           headers: orderHeaders,
           body: JSON.stringify(qikinkOrderPayload)
         });
-
-        const text = await response.text();
-        attemptResults.push({ path, status: response.status, text });
-        console.log(`[Order Attempt] ${path} returned status ${response.status}: ${text}`);
+        finalOrderResponseText = await response.text();
+        attemptResults.push(`Fallback (${fallbackUrl}) status: ${response.status}, text: ${finalOrderResponseText}`);
+        console.log(`[Order Attempt] Fallback endpoint returned status ${response.status}: ${finalOrderResponseText}`);
 
         if (response.ok) {
           orderSuccess = true;
-          successfulPath = path;
-          finalOrderResponseText = text;
-          break;
         }
       } catch (err: any) {
-        console.error(`Error attempting order post to ${path}:`, err);
-        attemptResults.push({ path, status: 0, text: err?.message || String(err) });
+        console.error(`Error attempting fallback order post to ${fallbackUrl}:`, err);
+        attemptResults.push(`Fallback (${fallbackUrl}) failed with error: ${err?.message || String(err)}`);
       }
     }
 
     if (!orderSuccess) {
-      const detailedErrors = attemptResults.map(r => `[Endpoint ${r.path} -> Status ${r.status}: ${r.text}]`).join('\n');
-      throw new Error(`Qikink Order creation failed across all candidate endpoints. Detailed endpoint attempt results:\n${detailedErrors}`);
+      throw new Error(`Qikink Order creation failed at both primary (/order) and fallback (/api/order) endpoints:\n${attemptResults.join('\n')}`);
     }
 
     let qikinkResponseData: any = null;
