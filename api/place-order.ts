@@ -87,81 +87,142 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log(`Authenticating with Qikink endpoint: ${qikinkEndpoint}`);
     
     // Retrieve Access Token via Qikink's official Token/Session endpoints
-    let tokenResponse = null;
+    let accessToken: string | null = null;
     let tokenData: any = null;
 
-    const authBody = {
-      client_id: qikinkClientId,
-      ClientId: qikinkClientId,
-      client_secret: qikinkClientSecret
-    };
-
     const endpointsToTry = [
-      `/v2/session-request`,
-      `/v2/session`,
-      `/session-request`,
-      `/session`
+      '/v2/oauth/token',
+      '/oauth/token',
+      '/v2/token',
+      '/v2/session-request',
+      '/v2/session',
+      '/session-request',
+      '/session',
+      '/oauth2/token',
+      '/v2/oauth2/token'
     ];
 
-    let lastError: any = null;
+    console.log("=== Initiating Deep Qikink Token Discovery/Authentication ===");
 
     for (const path of endpointsToTry) {
+      const targetUrl = `${qikinkEndpoint}${path}`;
+      
+      // Attempt 1: JSON body
       try {
-        const targetUrl = `${qikinkEndpoint}${path}`;
-        console.log(`Attempting login session/token request (JSON) to ${targetUrl}`);
-        
-        tokenResponse = await fetch(targetUrl, {
+        console.log(`[Auth Variant JSON] Attempting POST to ${targetUrl}`);
+        const res = await fetch(targetUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(authBody)
+          body: JSON.stringify({
+            client_id: qikinkClientId,
+            ClientId: qikinkClientId,
+            client_secret: qikinkClientSecret,
+            grant_type: "client_credentials"
+          })
         });
 
-        if (tokenResponse.ok) {
-          tokenData = await tokenResponse.json();
-          console.log(`Successfully authenticated with endpoint: ${targetUrl}`);
-          break;
-        } else {
-          const errText = await tokenResponse.text();
-          console.warn(`JSON request to ${path} failed with status ${tokenResponse.status}: ${errText}`);
-          
-          // Try form-urlencoded as robust fallback for this endpoint path
-          console.log(`Trying urlencoded fallback on ${targetUrl}...`);
-          const urlencoded = new URLSearchParams();
-          urlencoded.append('client_id', qikinkClientId);
-          urlencoded.append('ClientId', qikinkClientId);
-          urlencoded.append('client_secret', qikinkClientSecret);
+        const text = await res.text();
+        console.log(`[JSON Response] Endpoints ${path} returned status ${res.status}: ${text}`);
 
-          tokenResponse = await fetch(targetUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: urlencoded.toString()
-          });
-
-          if (tokenResponse.ok) {
-            tokenData = await tokenResponse.json();
-            console.log(`Successfully authenticated with endpoint (urlencoded): ${targetUrl}`);
-            break;
-          } else {
-            const urlEncodedErr = await tokenResponse.text();
-            console.warn(`Urlencoded request to ${path} failed with status ${tokenResponse.status}: ${urlEncodedErr}`);
+        if (res.ok) {
+          try {
+            const parsed = JSON.parse(text);
+            const tokenCandidate = parsed?.access_token || parsed?.data?.access_token || parsed?.token || parsed?.data?.token || parsed?.sessionId || parsed?.data?.sessionId || parsed?.session_id;
+            if (tokenCandidate) {
+              tokenData = parsed;
+              accessToken = tokenCandidate;
+              console.log(`Successfully obtained token from JSON variant of ${path}: ${accessToken}`);
+              break;
+            }
+          } catch (e) {
+            console.log(`Failed to parse response JSON from ${path}:`, e);
           }
         }
-      } catch (err: any) {
-        console.error(`Error negotiating session with endpoint ${path}:`, err);
-        lastError = err;
+      } catch (err) {
+        console.error(`Error executing JSON variant on ${path}:`, err);
+      }
+
+      // Attempt 2: Form URL Encoded body
+      try {
+        console.log(`[Auth Variant Urlencoded] Attempting POST to ${targetUrl}`);
+        const urlencoded = new URLSearchParams();
+        urlencoded.append('client_id', qikinkClientId);
+        urlencoded.append('ClientId', qikinkClientId);
+        urlencoded.append('client_secret', qikinkClientSecret);
+        urlencoded.append('grant_type', 'client_credentials');
+
+        const res = await fetch(targetUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: urlencoded.toString()
+        });
+
+        const text = await res.text();
+        console.log(`[Urlencoded Response] Endpoints ${path} returned status ${res.status}: ${text}`);
+
+        if (res.ok) {
+          try {
+            const parsed = JSON.parse(text);
+            const tokenCandidate = parsed?.access_token || parsed?.data?.access_token || parsed?.token || parsed?.data?.token || parsed?.sessionId || parsed?.data?.sessionId || parsed?.session_id;
+            if (tokenCandidate) {
+              tokenData = parsed;
+              accessToken = tokenCandidate;
+              console.log(`Successfully obtained token from Urlencoded variant of ${path}: ${accessToken}`);
+              break;
+            }
+          } catch (e) {
+            console.log(`Failed to parse response JSON from Urlencoded ${path}:`, e);
+          }
+        }
+      } catch (err) {
+        console.error(`Error executing Urlencoded variant on ${path}:`, err);
+      }
+
+      // Attempt 3: Passing credentials directly via headers on authentication endpoint
+      try {
+        console.log(`[Auth Variant Header Auth] Attempting POST with Auth Headers to ${targetUrl}`);
+        const res = await fetch(targetUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Client-ID': qikinkClientId,
+            'X-Client-Secret': qikinkClientSecret,
+            'client_id': qikinkClientId,
+            'ClientId': qikinkClientId,
+            'client_secret': qikinkClientSecret,
+            'client-id': qikinkClientId,
+            'client-secret': qikinkClientSecret
+          },
+          body: JSON.stringify({ grant_type: "client_credentials" })
+        });
+
+        const text = await res.text();
+        console.log(`[Header Auth Response] Endpoints ${path} returned status ${res.status}: ${text}`);
+
+        if (res.ok) {
+          try {
+            const parsed = JSON.parse(text);
+            const tokenCandidate = parsed?.access_token || parsed?.data?.access_token || parsed?.token || parsed?.data?.token || parsed?.sessionId || parsed?.data?.sessionId || parsed?.session_id;
+            if (tokenCandidate) {
+              tokenData = parsed;
+              accessToken = tokenCandidate;
+              console.log(`Successfully obtained token from Header-auth variant of ${path}: ${accessToken}`);
+              break;
+            }
+          } catch (e) {
+            console.log(`Failed to parse response JSON from Header-auth ${path}:`, e);
+          }
+        }
+      } catch (err) {
+        console.error(`Error executing Header-auth variant on ${path}:`, err);
       }
     }
 
-    if (!tokenData) {
-      throw new Error(`Failed to negotiate login session token with any of the official Qikink endpoints (${endpointsToTry.join(', ')}). Last error: ${lastError?.message || lastError}`);
+    if (accessToken) {
+      console.log("Authenticated successfully with Qikink. Access token obtained.");
+    } else {
+      console.warn("Could not retrieve a session/access token from any official path. Proceeding to downstream order endpoint directly with authentication credentials embedded in headers.");
     }
-
-    const accessToken = tokenData?.access_token || tokenData?.data?.access_token || tokenData?.token || tokenData?.data?.token || tokenData?.sessionId || tokenData?.data?.sessionId;
-    if (!accessToken) {
-      throw new Error(`No 'access_token' was found in the parsed Qikink OAuth response: ${JSON.stringify(tokenData)}`);
-    }
-
-    console.log("Authenticated successfully with Qikink. Access token received.");
 
     // Parse and map incoming payload to Qikink's shipping, customer, and line-item format requirements.
     const nameStr = (customerName || "Guest").trim();
@@ -268,34 +329,69 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log("Transmitting mapped draft order payload to Qikink:", JSON.stringify(qikinkOrderPayload, null, 2));
 
-    // Attempt order creation POST API
+    // Construct headers combining token-authentication and direct header credentials
+    const orderHeaders: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+
+    if (accessToken) {
+      orderHeaders['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    // Always mix-in direct authentication headers to support fallback header authentication!
+    orderHeaders['X-Client-ID'] = qikinkClientId;
+    orderHeaders['X-Client-Secret'] = qikinkClientSecret;
+    orderHeaders['client_id'] = qikinkClientId;
+    orderHeaders['ClientId'] = qikinkClientId;
+    orderHeaders['client_secret'] = qikinkClientSecret;
+    orderHeaders['client-id'] = qikinkClientId;
+    orderHeaders['client-secret'] = qikinkClientSecret;
+
+    console.log("Submitting order with mixed headers:", Object.keys(orderHeaders).filter(k => k.toLowerCase() !== 'x-client-secret' && k.toLowerCase() !== 'client_secret').join(', '));
+
+    // Attempt order creation POST API (v2)
     let orderResponse = await fetch(`${qikinkEndpoint}/v2/orders`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      },
+      headers: orderHeaders,
       body: JSON.stringify(qikinkOrderPayload)
     });
+
+    let orderResponseText = "";
+    try {
+      orderResponseText = await orderResponse.text();
+      console.log(`[Order V2 Response status ${orderResponse.status}]: ${orderResponseText}`);
+    } catch (readErr) {
+      console.error("Could not read order response text:", readErr);
+    }
 
     if (!orderResponse.ok) {
       console.log(`Failed /v2/orders POST endpoint (${orderResponse.status}). Trying alternative API v1 /orders...`);
       orderResponse = await fetch(`${qikinkEndpoint}/orders`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
+        headers: orderHeaders,
         body: JSON.stringify(qikinkOrderPayload)
       });
+
+      try {
+        orderResponseText = await orderResponse.text();
+        console.log(`[Order V1 Response status ${orderResponse.status}]: ${orderResponseText}`);
+      } catch (readErr) {
+        console.error("Could not read order V1 response text:", readErr);
+      }
     }
 
     if (!orderResponse.ok) {
-      const errText = await orderResponse.text();
-      throw new Error(`Qikink Order creation api call rejected with status ${orderResponse.status}: ${errText}`);
+      throw new Error(`Qikink Order creation api call rejected with status ${orderResponse.status}: ${orderResponseText || "No response body recorded."}`);
     }
 
-    const qikinkResponseData = await orderResponse.json();
+    let qikinkResponseData: any = null;
+    try {
+      qikinkResponseData = JSON.parse(orderResponseText);
+    } catch (parseErr) {
+      console.warn("Order response was not valid JSON, returning raw text inside the response object:", parseErr);
+      qikinkResponseData = { rawResponse: orderResponseText };
+    }
+
     console.log("Draft order created successfully inside Qikink:", qikinkResponseData);
 
     // Update Status inside Upstash Redis if available
@@ -305,7 +401,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const updatedData = {
           ...orderData,
           qikink_status: "created",
-          qikink_order_id: qikinkResponseData?.order_id || qikinkResponseData?.id || "unknown",
+          qikink_order_id: qikinkResponseData?.order_id || qikinkResponseData?.id || qikinkResponseData?.data?.order_id || "unknown",
           qikink_response: qikinkResponseData
         };
         await redis.set(orderKey, updatedData);
