@@ -71,6 +71,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const qikinkClientSecret = process.env.QIKINK_CLIENT_SECRET;
     const qikinkEndpoint = process.env.QIKINK_ENDPOINT || "https://api.qikink.com";
 
+    // Debug logs to verify exact environment variable definition status
+    console.log("=== API Environment Variable Verification ===");
+    console.log("Is QIKINK_CLIENT_ID missing:", !process.env.QIKINK_CLIENT_ID);
+    console.log("Is QIKINK_CLIENT_SECRET missing:", !process.env.QIKINK_CLIENT_SECRET);
+    console.log("QIKINK_ENDPOINT value:", process.env.QIKINK_ENDPOINT || "(using default: https://api.qikink.com)");
+    console.log("Is KV_REST_API_URL missing:", !process.env.KV_REST_API_URL);
+    console.log("Is KV_REST_API_TOKEN missing:", !process.env.KV_REST_API_TOKEN);
+    console.log("=============================================");
+
     let qikinkOrderCreated = false;
     let qikinkResponseData: any = null;
     let qikinkWarningMessage = "";
