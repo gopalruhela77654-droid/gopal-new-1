@@ -349,47 +349,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log("Submitting order with mixed headers:", Object.keys(orderHeaders).filter(k => k.toLowerCase() !== 'x-client-secret' && k.toLowerCase() !== 'client_secret').join(', '));
 
-    // Attempt order creation POST API (v2)
-    let orderResponse = await fetch(`${qikinkEndpoint}/v2/orders`, {
-      method: 'POST',
-      headers: orderHeaders,
-      body: JSON.stringify(qikinkOrderPayload)
-    });
+    // Attempt order creation across multiple potential endpoints (v2, v1, singular, plural, etc.)
+    const orderPathsToTry = [
+      '/v2/orders',
+      '/v2/order',
+      '/orders',
+      '/order',
+      '/v2/draft-orders',
+      '/v2/draft-order'
+    ];
 
-    let orderResponseText = "";
-    try {
-      orderResponseText = await orderResponse.text();
-      console.log(`[Order V2 Response status ${orderResponse.status}]: ${orderResponseText}`);
-    } catch (readErr) {
-      console.error("Could not read order response text:", readErr);
-    }
+    let orderSuccess = false;
+    let successfulPath = "";
+    let finalOrderResponseText = "";
+    const attemptResults: Array<{ path: string; status: number; text: string }> = [];
 
-    if (!orderResponse.ok) {
-      console.log(`Failed /v2/orders POST endpoint (${orderResponse.status}). Trying alternative API v1 /orders...`);
-      orderResponse = await fetch(`${qikinkEndpoint}/orders`, {
-        method: 'POST',
-        headers: orderHeaders,
-        body: JSON.stringify(qikinkOrderPayload)
-      });
+    for (const path of orderPathsToTry) {
+      const targetUrl = `${qikinkEndpoint}${path}`;
+      console.log(`[Order Creation] Attempting POST to ${targetUrl}`);
 
       try {
-        orderResponseText = await orderResponse.text();
-        console.log(`[Order V1 Response status ${orderResponse.status}]: ${orderResponseText}`);
-      } catch (readErr) {
-        console.error("Could not read order V1 response text:", readErr);
+        const response = await fetch(targetUrl, {
+          method: 'POST',
+          headers: orderHeaders,
+          body: JSON.stringify(qikinkOrderPayload)
+        });
+
+        const text = await response.text();
+        attemptResults.push({ path, status: response.status, text });
+        console.log(`[Order Attempt] ${path} returned status ${response.status}: ${text}`);
+
+        if (response.ok) {
+          orderSuccess = true;
+          successfulPath = path;
+          finalOrderResponseText = text;
+          break;
+        }
+      } catch (err: any) {
+        console.error(`Error attempting order post to ${path}:`, err);
+        attemptResults.push({ path, status: 0, text: err?.message || String(err) });
       }
     }
 
-    if (!orderResponse.ok) {
-      throw new Error(`Qikink Order creation api call rejected with status ${orderResponse.status}: ${orderResponseText || "No response body recorded."}`);
+    if (!orderSuccess) {
+      const detailedErrors = attemptResults.map(r => `[Endpoint ${r.path} -> Status ${r.status}: ${r.text}]`).join('\n');
+      throw new Error(`Qikink Order creation failed across all candidate endpoints. Detailed endpoint attempt results:\n${detailedErrors}`);
     }
 
     let qikinkResponseData: any = null;
     try {
-      qikinkResponseData = JSON.parse(orderResponseText);
+      qikinkResponseData = JSON.parse(finalOrderResponseText);
     } catch (parseErr) {
       console.warn("Order response was not valid JSON, returning raw text inside the response object:", parseErr);
-      qikinkResponseData = { rawResponse: orderResponseText };
+      qikinkResponseData = { rawResponse: finalOrderResponseText };
     }
 
     console.log("Draft order created successfully inside Qikink:", qikinkResponseData);
